@@ -31,7 +31,7 @@ public class SummonCommand extends Command {
         ));
         entityClass = ArgumentType.Enum("class", EntityClass.class)
                 .setFormat(ArgumentEnum.Format.LOWER_CASED)
-                .setDefaultValue(EntityClass.CREATURE);
+                .setDefaultValue(EntityClass.LIVING);
         addSyntax(this::execute, entity, pos, entityClass);
         setDefaultExecutor((sender, context) -> sender.sendMessage("Usage: /summon <type> <x> <y> <z> <class>"));
     }
@@ -45,8 +45,7 @@ public class SummonCommand extends Command {
     @SuppressWarnings("unused")
     enum EntityClass {
         BASE(Entity::new),
-        LIVING(LivingEntity::new),
-        CREATURE(EntityCreature::new);
+        LIVING(LivingEntity::new);
         private final EntityFactory factory;
 
         EntityClass(EntityFactory factory) {

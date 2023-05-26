@@ -1,15 +1,9 @@
 package net.minestom.server.entity.fakeplayer;
 
-import com.extollit.gaming.ai.path.HydrazinePathFinder;
 import net.minestom.server.MinecraftServer;
-import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Player;
-import net.minestom.server.entity.pathfinding.NavigableEntity;
-import net.minestom.server.entity.pathfinding.Navigator;
-import net.minestom.server.event.Event;
 import net.minestom.server.event.EventListener;
 import net.minestom.server.event.player.PlayerSpawnEvent;
-import net.minestom.server.instance.Instance;
 import net.minestom.server.network.ConnectionManager;
 import net.minestom.server.network.player.FakePlayerConnection;
 import net.minestom.server.network.player.PlayerConnection;
@@ -18,7 +12,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 /**
@@ -29,14 +22,12 @@ import java.util.function.Consumer;
  * You can create one using {@link #initPlayer(UUID, String, Consumer)}. Be aware that this really behave exactly like a player
  * and this is a feature not a bug, you will need to check at some place if the player is a fake one or not (instanceof) if you want to change it.
  */
-public class FakePlayer extends Player implements NavigableEntity {
+public class FakePlayer extends Player {
 
     private static final ConnectionManager CONNECTION_MANAGER = MinecraftServer.getConnectionManager();
 
     private final FakePlayerOption option;
     private final FakePlayerController fakePlayerController;
-
-    private final Navigator navigator = new Navigator(this);
 
     private EventListener<PlayerSpawnEvent> spawnListener;
 
@@ -117,20 +108,6 @@ public class FakePlayer extends Player implements NavigableEntity {
     }
 
     @Override
-    public void update(long time) {
-        super.update(time);
-        // Path finding
-        this.navigator.tick();
-    }
-
-    @Override
-    public CompletableFuture<Void> setInstance(@NotNull Instance instance, @NotNull Pos spawnPosition) {
-        this.navigator.setPathFinder(new HydrazinePathFinder(navigator.getPathingEntity(), instance.getInstanceSpace()));
-
-        return super.setInstance(instance, spawnPosition);
-    }
-
-    @Override
     public void updateNewViewer(@NotNull Player player) {
         player.sendPacket(getAddPlayerToList());
         handleTabList(player.getPlayerConnection());
@@ -144,12 +121,6 @@ public class FakePlayer extends Player implements NavigableEntity {
     protected void showPlayer(@NotNull PlayerConnection connection) {
         super.showPlayer(connection);
         handleTabList(connection);
-    }
-
-    @NotNull
-    @Override
-    public Navigator getNavigator() {
-        return navigator;
     }
 
     private void handleTabList(PlayerConnection connection) {

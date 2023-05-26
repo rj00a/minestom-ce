@@ -7,7 +7,7 @@ import net.minestom.server.command.builder.CommandContext;
 import net.minestom.server.command.builder.arguments.ArgumentType;
 import net.minestom.server.command.builder.condition.Conditions;
 import net.minestom.server.command.builder.exception.ArgumentSyntaxException;
-import net.minestom.server.entity.EntityCreature;
+import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.EntityType;
 import net.minestom.server.entity.Player;
 import net.minestom.server.entity.metadata.animal.HorseMeta;
@@ -59,7 +59,7 @@ public class HorseCommand extends Command {
         boolean baby = context.get("baby");
         HorseMeta.Marking marking = context.get("marking");
         HorseMeta.Color color = context.get("color");
-        var horse = new EntityCreature(EntityType.HORSE);
+        var horse = new Entity(EntityType.HORSE);
         var meta = (HorseMeta) horse.getEntityMeta();
         meta.setBaby(baby);
         meta.setVariant(new HorseMeta.Variant(marking, color));
