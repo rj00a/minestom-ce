@@ -16,24 +16,8 @@ public class ChestPlacementRule {
             .map(PlayerBlockBreakEvent.class, ChestPlacementRule::onBreak)
             .build();
 
-    public static void onPlace(Block block, PlayerBlockPlaceEvent event) {
-        // Get player facing angle and set property accordingly
-        float yaw = event.getPlayer().getPosition().yaw();
-        String facingDirection;
-
-        // TODO: This should be extracted out into its own placement rule, as this applies to several other blocks
-        if (yaw >= 135 || yaw <= -135) {
-            // Player is facing north, face south
-            facingDirection = "south";
-        } else if (yaw >= 45) {
-            // Player facing west
-            facingDirection = "east";
-        } else if (yaw >= -45) {
-            facingDirection = "north";
-        } else {
-            facingDirection = "west";
-        }
-        block = block.withProperty("facing", facingDirection);
+    private static void onPlace(Block block, PlayerBlockPlaceEvent event) {
+        String facingDirection = block.getProperty("facing");
         block = block.withProperty("type", "single");
 
         // Place as single if player is shifting
