@@ -2,15 +2,18 @@ package net.minestom.server.extras.blockplacement.rules;
 
 import net.minestom.server.event.EventBinding;
 import net.minestom.server.event.EventFilter;
+import net.minestom.server.event.player.PlayerBlockBreakEvent;
 import net.minestom.server.event.player.PlayerBlockPlaceEvent;
 import net.minestom.server.event.trait.BlockEvent;
 import net.minestom.server.extras.blockplacement.BlockMatchers;
 import net.minestom.server.instance.block.Block;
+import org.jetbrains.annotations.NotNull;
 
 public class ChestPlacementRule {
 
     public static EventBinding<BlockEvent> CHEST_PLACEMENT_RULE = EventBinding.filtered(EventFilter.BLOCK, BlockMatchers::isConnectableChest)
             .map(PlayerBlockPlaceEvent.class, ChestPlacementRule::onPlace)
+            .map(PlayerBlockBreakEvent.class, ChestPlacementRule::onBreak)
             .build();
 
     public static void onPlace(Block block, PlayerBlockPlaceEvent event) {
@@ -91,5 +94,29 @@ public class ChestPlacementRule {
             }
         }
         event.setBlock(block);
+    }
+
+    private static void onBreak(@NotNull Block block, @NotNull PlayerBlockBreakEvent event) {
+        if (block.getProperty("type").equals("left")) {
+            String facingDirection = block.getProperty("facing");
+            if (facingDirection != null) {
+                switch (facingDirection) {
+                    case "north" -> event.getInstance().setBlock(event.getBlockPosition().add(1, 0, 0), event.getInstance().getBlock(event.getBlockPosition().add(1, 0, 0)).withProperty("type", "single"));
+                    case "south" -> event.getInstance().setBlock(event.getBlockPosition().add(-1, 0, 0), event.getInstance().getBlock(event.getBlockPosition().add(-1, 0, 0)).withProperty("type", "single"));
+                    case "east" -> event.getInstance().setBlock(event.getBlockPosition().add(0, 0, 1), event.getInstance().getBlock(event.getBlockPosition().add(0, 0, 1)).withProperty("type", "single"));
+                    case "west" -> event.getInstance().setBlock(event.getBlockPosition().add(0, 0, -1), event.getInstance().getBlock(event.getBlockPosition().add(0, 0, -1)).withProperty("type", "single"));
+                }
+            }
+        } else if (block.getProperty("type").equals("right")) {
+            String facingDirection = block.getProperty("facing");
+            if (facingDirection != null) {
+                switch (facingDirection) {
+                    case "north" -> event.getInstance().setBlock(event.getBlockPosition().add(-1, 0, 0), event.getInstance().getBlock(event.getBlockPosition().add(-1, 0, 0)).withProperty("type", "single"));
+                    case "south" -> event.getInstance().setBlock(event.getBlockPosition().add(1, 0, 0), event.getInstance().getBlock(event.getBlockPosition().add(1, 0, 0)).withProperty("type", "single"));
+                    case "east" -> event.getInstance().setBlock(event.getBlockPosition().add(0, 0, -1), event.getInstance().getBlock(event.getBlockPosition().add(0, 0, -1)).withProperty("type", "single"));
+                    case "west" -> event.getInstance().setBlock(event.getBlockPosition().add(0, 0, 1), event.getInstance().getBlock(event.getBlockPosition().add(0, 0, 1)).withProperty("type", "single"));
+                }
+            }
+        }
     }
 }
