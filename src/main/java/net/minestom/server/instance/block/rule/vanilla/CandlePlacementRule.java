@@ -9,11 +9,18 @@ import net.minestom.server.item.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** Also usable for sea pickles */
 public class CandlePlacementRule extends BlockPlacementRule {
     public static final int MAX_CANDLES = 4;
 
-    public CandlePlacementRule(@NotNull Block block) {
+    public static final String CANDLE_PROPERTY = "candles";
+    public static final String SEA_PICKLE_PROPERTY = "pickles";
+
+    private final String property;
+
+    public CandlePlacementRule(@NotNull Block block, @NotNull String property) {
         super(block);
+        this.property = property;
     }
 
     @Override
@@ -34,9 +41,9 @@ public class CandlePlacementRule extends BlockPlacementRule {
         var existingBlock = instance.getBlock(placePosition);
         if (existingBlock.id() == block.id()) {
             // There is already a candle, and we are replacing it, increment the candle count
-            var candles = Integer.parseInt(existingBlock.properties().get("candles"));
+            var candles = Integer.parseInt(existingBlock.properties().get(property));
             if (candles == MAX_CANDLES) return null;
-            return existingBlock.withProperty("candles", String.valueOf(candles + 1));
+            return existingBlock.withProperty(property, String.valueOf(candles + 1));
         }
 
         return block;
@@ -44,6 +51,6 @@ public class CandlePlacementRule extends BlockPlacementRule {
 
     @Override
     public boolean isSelfReplaceable(@NotNull Block block) {
-        return Integer.parseInt(block.properties().get("candles")) != MAX_CANDLES;
+        return Integer.parseInt(block.properties().get(property)) != MAX_CANDLES;
     }
 }

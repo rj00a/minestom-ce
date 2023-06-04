@@ -1,6 +1,5 @@
 package net.minestom.server.instance.block.rule.vanilla;
 
-import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.instance.block.Block;
@@ -12,19 +11,14 @@ import net.minestom.server.item.Material;
 import net.minestom.testing.util.MockBlockGetter;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.*;
-
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 class StairsPlacementRuleTest {
-    private static final Block.Getter EMPTY_BLOCK_GETTER = MockBlockGetter.create();
+    private static final Block.Getter EMPTY_BLOCK_GETTER = MockBlockGetter.empty();
     public static final Block BLOCK = Block.STONE_STAIRS;
     private static final ItemMeta EMPTY_META = ItemStack.of(Material.AIR).meta();
 
