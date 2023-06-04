@@ -6,15 +6,15 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /** Also usable for sea pickles */
-public class CandlePlacementRule extends BlockPlacementRule {
-    public static final int MAX_CANDLES = 4;
+public class BlockStackingPlacementRule extends BlockPlacementRule {
+    private static final int MAX_AMOUNT = 4;
 
     public static final String CANDLE_PROPERTY = "candles";
     public static final String SEA_PICKLE_PROPERTY = "pickles";
 
     private final String property;
 
-    public CandlePlacementRule(@NotNull Block block, @NotNull String property) {
+    public BlockStackingPlacementRule(@NotNull Block block, @NotNull String property) {
         super(block);
         this.property = property;
     }
@@ -27,18 +27,17 @@ public class CandlePlacementRule extends BlockPlacementRule {
     @Override
     public @Nullable Block blockPlace(@NotNull PlacementState placementState) {
         var existingBlock = placementState.instance().getBlock(placementState.placePosition());
-        if (existingBlock.id() == block.id()) {
-            // There is already a candle, and we are replacing it, increment the candle count
-            var candles = Integer.parseInt(existingBlock.properties().get(property));
-            if (candles == MAX_CANDLES) return null;
-            return existingBlock.withProperty(property, String.valueOf(candles + 1));
+        if (existingBlock.compare(block)) {
+            // There is already a candle/sea pickle, and we are replacing it, increment the candle count
+            var amount = Integer.parseInt(existingBlock.properties().get(property));
+            if (amount == MAX_AMOUNT) return null;
+            return existingBlock.withProperty(property, String.valueOf(amount + 1));
         }
-
         return block;
     }
 
     @Override
     public boolean isSelfReplaceable(@NotNull Block block) {
-        return Integer.parseInt(block.properties().get(property)) != MAX_CANDLES;
+        return Integer.parseInt(block.properties().get(property)) != MAX_AMOUNT;
     }
 }

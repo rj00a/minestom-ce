@@ -55,5 +55,9 @@ public final class PlacementRules {
         for (NamespaceID id : BlockTags.MINECRAFT_STAIRS.getValues()) {
             blockManager.registerBlockPlacementRule(new StairsPlacementRule(Block.fromNamespaceId(id)));
         }
+        for (NamespaceID id : BlockTags.MINECRAFT_CANDLES.getValues()) {
+            blockManager.registerBlockPlacementRule(new BlockStackingPlacementRule(Block.fromNamespaceId(id), BlockStackingPlacementRule.CANDLE_PROPERTY));
+        }
+        blockManager.registerBlockPlacementRule(new BlockStackingPlacementRule(Block.SEA_PICKLE, BlockStackingPlacementRule.SEA_PICKLE_PROPERTY));
 	}
 }

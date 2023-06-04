@@ -27,4 +27,6 @@ public final class BlockTags {
     public static final Tag MINECRAFT_ANVILS = Objects.requireNonNull(MinecraftServer.getTagManager().getTag(Tag.BasicType.BLOCKS, "minecraft:anvil"));
 
     public static final Tag MINECRAFT_TRAPDOORS = Objects.requireNonNull(MinecraftServer.getTagManager().getTag(Tag.BasicType.BLOCKS, "minecraft:trapdoors"));
+
+    public static final Tag MINECRAFT_CANDLES = Objects.requireNonNull(MinecraftServer.getTagManager().getTag(Tag.BasicType.BLOCKS, "minecraft:candles"));
 }

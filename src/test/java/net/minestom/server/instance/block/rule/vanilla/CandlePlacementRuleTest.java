@@ -3,7 +3,7 @@ package net.minestom.server.instance.block.rule.vanilla;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.instance.block.Block;
 import net.minestom.server.instance.block.rule.BlockPlacementRule;
-import net.minestom.server.instance.block.rule.vanilla.placementrules.CandlePlacementRule;
+import net.minestom.server.instance.block.rule.vanilla.placementrules.BlockStackingPlacementRule;
 import net.minestom.testing.util.MockBlockGetter;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -15,7 +15,7 @@ class CandlePlacementRuleTest {
 
     @Test
     void testNoCandle() {
-        var rule = new CandlePlacementRule(Block.BLACK_CANDLE, CandlePlacementRule.CANDLE_PROPERTY);
+        var rule = new BlockStackingPlacementRule(Block.BLACK_CANDLE, BlockStackingPlacementRule.CANDLE_PROPERTY);
         var result = rule.blockPlace(new BlockPlacementRule.PlacementState(
                 MockBlockGetter.empty(),
                 rule.getBlock(), null, Vec.ZERO,
@@ -26,7 +26,7 @@ class CandlePlacementRuleTest {
 
     @Test
     void testMaxCandle() {
-        var rule = new CandlePlacementRule(Block.BLACK_CANDLE, CandlePlacementRule.CANDLE_PROPERTY);
+        var rule = new BlockStackingPlacementRule(Block.BLACK_CANDLE, BlockStackingPlacementRule.CANDLE_PROPERTY);
         var block = Block.BLACK_CANDLE.withProperty("candles", "4");
         var result = rule.blockPlace(new BlockPlacementRule.PlacementState(
                 MockBlockGetter.single(block),
@@ -39,7 +39,7 @@ class CandlePlacementRuleTest {
     @ParameterizedTest
     @ValueSource(ints = {1, 2, 3})
     void testCandleStack(int candles) {
-        var rule = new CandlePlacementRule(Block.BLACK_CANDLE, CandlePlacementRule.CANDLE_PROPERTY);
+        var rule = new BlockStackingPlacementRule(Block.BLACK_CANDLE, BlockStackingPlacementRule.CANDLE_PROPERTY);
         var block = Block.BLACK_CANDLE.withProperty("candles", String.valueOf(candles));
         var result = rule.blockPlace(new BlockPlacementRule.PlacementState(
                 MockBlockGetter.single(block),
@@ -52,7 +52,7 @@ class CandlePlacementRuleTest {
     @Test
     void testUpdateStub() {
         // Just a marker to add tests in case the impl ever changes.
-        var rule = new CandlePlacementRule(Block.BLACK_CANDLE, CandlePlacementRule.CANDLE_PROPERTY);
+        var rule = new BlockStackingPlacementRule(Block.BLACK_CANDLE, BlockStackingPlacementRule.CANDLE_PROPERTY);
         Block block = Block.BLACK_WOOL; // Not even a valid block
         var result = rule.blockUpdate(new BlockPlacementRule.UpdateState(null, null, block));
         assertSame(block, result);
@@ -61,7 +61,7 @@ class CandlePlacementRuleTest {
     @Test
     void testSelfReplaceable() {
         // 1-3 candles are self replaceable, 4 is not
-        var rule = new CandlePlacementRule(Block.BLACK_CANDLE, CandlePlacementRule.CANDLE_PROPERTY);
+        var rule = new BlockStackingPlacementRule(Block.BLACK_CANDLE, BlockStackingPlacementRule.CANDLE_PROPERTY);
         assertTrue(rule.isSelfReplaceable(Block.BLACK_CANDLE.withProperty("candles", "1")));
         assertTrue(rule.isSelfReplaceable(Block.BLACK_CANDLE.withProperty("candles", "2")));
         assertTrue(rule.isSelfReplaceable(Block.BLACK_CANDLE.withProperty("candles", "3")));
