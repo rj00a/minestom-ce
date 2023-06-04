@@ -27,6 +27,8 @@ import net.minestom.server.network.packet.server.play.BlockChangePacket;
 import net.minestom.server.utils.chunk.ChunkUtils;
 import net.minestom.server.utils.validate.Check;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 public class BlockPlacementListener {
     private static final BlockManager BLOCK_MANAGER = MinecraftServer.getBlockManager();
 
@@ -87,8 +89,10 @@ public class BlockPlacementListener {
         }
 
         // Get the newly placed block position
+        //todo it feels like it should be possible to have better replacement rules than this, feels pretty scuffed.
         Point placementPosition = blockPosition;
-        if (!interactedBlock.registry().isReplaceable()) {
+        var interactedPlacementRule = BLOCK_MANAGER.getBlockPlacementRule(interactedBlock);
+        if (!interactedBlock.registry().isReplaceable() && (interactedPlacementRule == null || !interactedPlacementRule.isSelfReplaceable(interactedBlock))) {
             // If the block is not replaceable, try to place next to it.
             final int offsetX = blockFace == BlockFace.WEST ? -1 : blockFace == BlockFace.EAST ? 1 : 0;
             final int offsetY = blockFace == BlockFace.BOTTOM ? -1 : blockFace == BlockFace.TOP ? 1 : 0;
@@ -96,7 +100,8 @@ public class BlockPlacementListener {
             placementPosition = blockPosition.add(offsetX, offsetY, offsetZ);
 
             var placementBlock = instance.getBlock(placementPosition);
-            if (!placementBlock.registry().isReplaceable()) {
+            var placementRule = BLOCK_MANAGER.getBlockPlacementRule(placementBlock);
+            if (!placementBlock.registry().isReplaceable() && (placementRule == null || !placementRule.isSelfReplaceable(placementBlock))) {
                 // If the block is still not replaceable, cancel the placement
                 canPlaceBlock = false;
             }
@@ -146,34 +151,12 @@ public class BlockPlacementListener {
         final BlockPlacementRule blockPlacementRule = BLOCK_MANAGER.getBlockPlacementRule(resultBlock);
         if (blockPlacementRule != null) {
             // Get id from block placement rule instead of the event
-
-            var existingBlock = instance.getBlock(placementPosition);
-            if (blockPlacementRule.isSelfReplaceable() && interactedBlock.id() == resultBlock.id()) {
-                System.out.println("replace 1");
-                // Handle click on block to replace
-                placementPosition = blockPosition;
-                resultBlock = blockPlacementRule.blockReplace(
-                        instance, resultBlock, blockFace,
-                        blockPosition, cursorPosition,
-                        player.getPosition(), usedItem.meta()
-                );
-            } else if (blockPlacementRule.isSelfReplaceable() && existingBlock.id() == resultBlock.id()) {
-                System.out.println("replace 2");
-                // Handle next block click on non-solid blocks
-                resultBlock = blockPlacementRule.blockReplace(
-                        instance, resultBlock, blockFace,
-                        placementPosition, cursorPosition,
-                        player.getPosition(), usedItem.meta()
-                );
-            } else {
-                resultBlock = blockPlacementRule.blockPlace(
-                        instance, resultBlock, blockFace,
-                        blockPosition, cursorPosition,
-                        player.getPosition(), usedItem.meta()
-                );
-            }
+            resultBlock = blockPlacementRule.blockPlace(
+                    instance, resultBlock, blockFace,
+                    placementPosition, cursorPosition,
+                    player.getPosition(), usedItem.meta()
+            );
         }
-        System.out.println("ReSULT BLOCK: " + resultBlock);
         if (resultBlock == null) {
             refresh(player, chunk);
             return;

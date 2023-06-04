@@ -8,6 +8,8 @@ import net.minestom.server.item.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 public abstract class BlockPlacementRule {
     protected final Block block;
 
@@ -51,23 +53,21 @@ public abstract class BlockPlacementRule {
             @NotNull ItemMeta usedItemMeta
     );
 
-    /**
-     * If set, blockReplace will be called when placing the same block on top, and the result block will replace the existing one.
-     */
-    public boolean isSelfReplaceable() {
-        return false;
-    }
-
-    public @Nullable Block blockReplace(
+    public @Nullable Block blockPlace2(
             @NotNull Block.Getter instance,
             @NotNull Block block,
             @NotNull BlockFace blockFace,
-            @NotNull Point replacePosition,
+            @NotNull Point placePosition,
             @NotNull Point cursorPosition,
             @NotNull Pos playerPosition,
-            @NotNull ItemMeta usedItemMeta
+            @NotNull ItemMeta usedItemMeta,
+            AtomicBoolean replace
     ) {
         return null;
+    }
+
+    public boolean isSelfReplaceable(@NotNull Block block) {
+        return false;
     }
 
     public @NotNull Block getBlock() {

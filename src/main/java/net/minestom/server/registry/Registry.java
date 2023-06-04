@@ -264,6 +264,10 @@ public final class Registry {
             return replaceable;
         }
 
+        public boolean isReplaceableBy(@NotNull Material material) {
+            return !isSolid() && (replaceable || material == material());
+        }
+
         public boolean isBlockEntity() {
             return blockEntity != null;
         }
