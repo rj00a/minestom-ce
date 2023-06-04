@@ -1,4 +1,4 @@
-package net.minestom.server.extras.blockplacement;
+package net.minestom.server.instance.block.rule.vanilla;
 
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.gamedata.tags.Tag;

@@ -5,15 +5,12 @@ import net.minestom.server.event.EventBinding;
 import net.minestom.server.event.EventFilter;
 import net.minestom.server.event.player.PlayerBlockPlaceEvent;
 import net.minestom.server.event.trait.BlockEvent;
-import net.minestom.server.extras.blockplacement.BlockMatchers;
-import net.minestom.server.extras.blockplacement.BlockTags;
+import net.minestom.server.instance.block.rule.vanilla.BlockMatchers;
+import net.minestom.server.instance.block.rule.vanilla.BlockTags;
 import net.minestom.server.instance.block.Block;
 import net.minestom.server.instance.block.BlockFace;
 import net.minestom.server.utils.Direction;
-import net.minestom.server.utils.NamespaceID;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.Set;
 
 public class FacingPlacementRule {
 

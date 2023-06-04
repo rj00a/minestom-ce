@@ -3,9 +3,9 @@ package net.minestom.server.extras;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.instance.block.Block;
 import net.minestom.server.instance.block.BlockManager;
-import net.minestom.server.instance.block.rule.vanilla.AxisPlacementRule;
-import net.minestom.server.instance.block.rule.vanilla.RedstonePlacementRule;
-import net.minestom.server.instance.block.rule.vanilla.WallPlacementRule;
+import net.minestom.server.instance.block.rule.vanilla.BlockTags;
+import net.minestom.server.instance.block.rule.vanilla.placementrules.*;
+import net.minestom.server.utils.NamespaceID;
 
 public final class PlacementRules {
 
@@ -50,5 +50,10 @@ public final class PlacementRules {
 		blockManager.registerBlockPlacementRule(new AxisPlacementRule(Block.STRIPPED_WARPED_STEM));
 		blockManager.registerBlockPlacementRule(new WallPlacementRule(Block.COBBLESTONE_WALL));
 		blockManager.registerBlockPlacementRule(new WallPlacementRule(Block.MOSSY_COBBLESTONE_WALL));
+        blockManager.registerBlockPlacementRule(new ChestPlacementRule(Block.CHEST));
+        blockManager.registerBlockPlacementRule(new ChestPlacementRule(Block.TRAPPED_CHEST));
+        for (NamespaceID id : BlockTags.MINECRAFT_STAIRS.getValues()) {
+            blockManager.registerBlockPlacementRule(new StairsPlacementRule(Block.fromNamespaceId(id)));
+        }
 	}
 }

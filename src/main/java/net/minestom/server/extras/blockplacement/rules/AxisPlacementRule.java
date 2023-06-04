@@ -4,7 +4,7 @@ import net.minestom.server.event.EventBinding;
 import net.minestom.server.event.EventFilter;
 import net.minestom.server.event.player.PlayerBlockPlaceEvent;
 import net.minestom.server.event.trait.BlockEvent;
-import net.minestom.server.extras.blockplacement.BlockMatchers;
+import net.minestom.server.instance.block.rule.vanilla.BlockMatchers;
 import net.minestom.server.instance.block.Block;
 import org.jetbrains.annotations.NotNull;
 

@@ -151,10 +151,10 @@ public class BlockPlacementListener {
         final BlockPlacementRule blockPlacementRule = BLOCK_MANAGER.getBlockPlacementRule(resultBlock);
         if (blockPlacementRule != null) {
             // Get id from block placement rule instead of the event
-            resultBlock = blockPlacementRule.blockPlace(
+            resultBlock = blockPlacementRule.blockPlace(new BlockPlacementRule.PlacementState(
                     instance, resultBlock, blockFace,
                     placementPosition, cursorPosition,
-                    player.getPosition(), usedItem.meta()
+                    player.getPosition(), usedItem.meta(), player.isSneaking())
             );
         }
         if (resultBlock == null) {

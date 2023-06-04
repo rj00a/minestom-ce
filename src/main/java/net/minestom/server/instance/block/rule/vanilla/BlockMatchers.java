@@ -1,4 +1,4 @@
-package net.minestom.server.extras.blockplacement;
+package net.minestom.server.instance.block.rule.vanilla;
 
 import net.minestom.server.instance.block.Block;
 import net.minestom.server.utils.NamespaceID;
@@ -11,6 +11,10 @@ public class BlockMatchers {
     // For chests that can become double chests
     public static boolean isConnectableChest(@NotNull Block block) {
         return block.compare(Block.CHEST) || block.compare(Block.TRAPPED_CHEST);
+    }
+
+    public static boolean isWall(@NotNull Block block) {
+        return BlockTags.MINECRAFT_WALLS.contains(block.namespace());
     }
 
     public static boolean hasAxis(@NotNull Block block) {
@@ -29,6 +33,8 @@ public class BlockMatchers {
     public static boolean hasBlockFacingVertical(@NotNull Block block) {
         return HAS_VERTICAL.contains(block.namespace());
     }
+
+
 
     private static final Set<NamespaceID> HAS_VERTICAL = Set.of(
             NamespaceID.from("minecraft:dispenser"),

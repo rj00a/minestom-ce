@@ -9,13 +9,12 @@ import net.minestom.demo.commands.*;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.command.CommandManager;
 import net.minestom.server.event.server.ServerListPingEvent;
+import net.minestom.server.extras.PlacementRules;
 import net.minestom.server.extras.lan.OpenToLAN;
 import net.minestom.server.extras.lan.OpenToLANConfig;
 import net.minestom.server.extras.optifine.OptifineSupport;
-import net.minestom.server.instance.block.Block;
 import net.minestom.server.instance.block.BlockManager;
-import net.minestom.server.instance.block.rule.vanilla.CandlePlacementRule;
-import net.minestom.server.instance.block.rule.vanilla.RedstonePlacementRule;
+import net.minestom.server.instance.block.rule.vanilla.placementrules.RedstonePlacementRule;
 import net.minestom.server.ping.ResponseData;
 import net.minestom.server.utils.identity.NamedAndIdentified;
 import net.minestom.server.utils.time.TimeUnit;
@@ -56,8 +55,6 @@ public class Main {
         commandManager.register(new ExecuteCommand());
         commandManager.register(new RedirectTestCommand());
         commandManager.register(new DisplayCommand());
-
-        MinecraftServer.getBlockManager().registerBlockPlacementRule(new CandlePlacementRule(Block.BLACK_CANDLE));
 
 
         commandManager.setUnknownCommandCallback((sender, command) -> sender.sendMessage(Component.text("Unknown command", NamedTextColor.RED)));
@@ -111,6 +108,8 @@ public class Main {
 
         // useful for testing - we don't need to worry about event calls so just set this to a long time
         OpenToLAN.open(new OpenToLANConfig().eventCallDelay(Duration.of(1, TimeUnit.DAY)));
+
+        PlacementRules.init();
 
         minecraftServer.start("0.0.0.0", 25565);
 //        minecraftServer.start(java.net.UnixDomainSocketAddress.of("minestom-demo.sock"));

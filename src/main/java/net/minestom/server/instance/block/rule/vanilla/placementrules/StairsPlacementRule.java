@@ -1,11 +1,10 @@
-package net.minestom.server.instance.block.rule.vanilla;
+package net.minestom.server.instance.block.rule.vanilla.placementrules;
 
 import net.minestom.server.coordinate.Point;
-import net.minestom.server.coordinate.Pos;
 import net.minestom.server.instance.block.Block;
 import net.minestom.server.instance.block.BlockFace;
 import net.minestom.server.instance.block.rule.BlockPlacementRule;
-import net.minestom.server.item.ItemMeta;
+import net.minestom.server.instance.block.rule.vanilla.BlockTags;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -17,30 +16,21 @@ public class StairsPlacementRule extends BlockPlacementRule {
         super(block);
     }
 
-
     @Override
-    public @NotNull Block blockUpdate(@NotNull Block.Getter instance, @NotNull Point blockPosition, @NotNull Block block) {
-        Shape shape = getShape(instance, blockPosition, getFacing(block), getHalf(block));
+    public @NotNull Block blockUpdate(@NotNull UpdateState updateState) {
+        Shape shape = getShape(updateState.instance(), updateState.blockPosition(), getFacing(block), getHalf(block));
         return block.withProperty("shape", shape.toString().toLowerCase());
     }
 
     @Override
-    public Block blockPlace(
-            @NotNull Block.Getter instance,
-            @NotNull Block block,
-            @NotNull BlockFace blockFace,
-            @NotNull Point placePosition,
-            @NotNull Point cursorPosition,
-            @NotNull Pos playerPosition,
-            @NotNull ItemMeta usedItemMeta
-    ) {
-        var facing = BlockFace.fromYaw(playerPosition.yaw());
-        var blockPosition = placePosition.relative(blockFace);
+    public @Nullable Block blockPlace(@NotNull PlacementState placementState) {
+        var facing = BlockFace.fromYaw(placementState.playerPosition().yaw());
+        var blockPosition = placementState.placePosition().relative(placementState.blockFace());
 
-        var half = blockFace == BlockFace.BOTTOM || blockFace == BlockFace.TOP ?
-                blockFace.getOppositeFace() :
-                (cursorPosition.y() > 0.5 ? BlockFace.TOP : BlockFace.BOTTOM);
-        var shape = getShape(instance, blockPosition, facing, half);
+        var half = placementState.blockFace() == BlockFace.BOTTOM || placementState.blockFace() == BlockFace.TOP ?
+                placementState.blockFace().getOppositeFace() :
+                (placementState.cursorPosition().y() > 0.5 ? BlockFace.TOP : BlockFace.BOTTOM);
+        var shape = getShape(placementState.instance(), blockPosition, facing, half);
 
         String waterlogged = "false"; //todo
         return block.withProperties(Map.of(
@@ -84,7 +74,7 @@ public class StairsPlacementRule extends BlockPlacementRule {
             Shape left, Shape right, BlockFace half
     ) {
         var neighbor = instance.getBlock(blockPosition.relative(front ? facing : facing.getOppositeFace()));
-        if (!isStairsBlock(neighbor) || half != getHalf(neighbor)) return null;
+        if (!isStairs(neighbor) || half != getHalf(neighbor)) return null;
 
         BlockFace otherFacing = getFacing(neighbor);
         if (otherFacing == null) return null;
@@ -114,12 +104,10 @@ public class StairsPlacementRule extends BlockPlacementRule {
 
     private boolean checkNeighbor(Block.Getter world, Point pos, BlockFace facing, BlockFace otherFacing, BlockFace half) {
         Block neighbor = world.getBlock(pos.relative(otherFacing));
-        return !isStairsBlock(neighbor) || facing != getFacing(neighbor) || half != getHalf(neighbor);
+        return !isStairs(neighbor) || facing != getFacing(neighbor) || half != getHalf(neighbor);
     }
 
-    public boolean isStairsBlock(Block block) {
-        //todo probably should use stairs tag for this
-        return block.name().contains("stairs");
+    public boolean isStairs(@NotNull Block block) {
+        return BlockTags.MINECRAFT_STAIRS.contains(block.namespace());
     }
-
 }

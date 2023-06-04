@@ -1,4 +1,4 @@
-package net.minestom.server.instance.block.rule.vanilla;
+package net.minestom.server.instance.block.rule.vanilla.placementrules;
 
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
@@ -18,10 +18,10 @@ public class WallPlacementRule extends BlockPlacementRule {
     }
 
     @Override
-    public @NotNull Block blockUpdate(@NotNull Block.Getter instance, @NotNull Point blockPosition, @NotNull Block block) {
-        final int x = blockPosition.blockX();
-        final int y = blockPosition.blockY();
-        final int z = blockPosition.blockZ();
+    public @NotNull Block blockUpdate(@NotNull UpdateState updateState) {
+        final int x = updateState.blockPosition().blockX();
+        final int y = updateState.blockPosition().blockY();
+        final int z = updateState.blockPosition().blockZ();
 
         String east = "none";
         String north = "none";
@@ -30,19 +30,19 @@ public class WallPlacementRule extends BlockPlacementRule {
         String waterlogged = "false";
         String west = "none";
 
-        if (isBlock(instance, x + 1, y, z)) {
+        if (isBlock(updateState.instance(), x + 1, y, z)) {
             east = "low";
         }
 
-        if (isBlock(instance, x - 1, y, z)) {
+        if (isBlock(updateState.instance(), x - 1, y, z)) {
             west = "low";
         }
 
-        if (isBlock(instance, x, y, z + 1)) {
+        if (isBlock(updateState.instance(), x, y, z + 1)) {
             south = "low";
         }
 
-        if (isBlock(instance, x, y, z - 1)) {
+        if (isBlock(updateState.instance(), x, y, z - 1)) {
             north = "low";
         }
 
@@ -56,15 +56,7 @@ public class WallPlacementRule extends BlockPlacementRule {
     }
 
     @Override
-    public Block blockPlace(
-            @NotNull Block.Getter instance,
-            @NotNull Block block,
-            @NotNull BlockFace blockFace,
-            @NotNull Point blockPosition,
-            @NotNull Point cursorPosition,
-            @NotNull Pos playerPosition,
-            @NotNull ItemMeta usedItemMeta
-    ) {
+    public @Nullable Block blockPlace(@NotNull PlacementState placementState) {
         return block;
     }
 

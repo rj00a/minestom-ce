@@ -2,6 +2,8 @@ package net.minestom.server.instance.block.rule.vanilla;
 
 import net.minestom.server.instance.block.Block;
 import net.minestom.server.instance.block.BlockFace;
+import net.minestom.server.instance.block.rule.BlockPlacementRule;
+import net.minestom.server.instance.block.rule.vanilla.placementrules.AxisPlacementRule;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -23,10 +25,10 @@ class AxisPlacementRuleTest {
     @ArgumentsSource(AxisProvider.class)
     void testAxisFacing(BlockFace blockFace, String expected) {
         var rule = new AxisPlacementRule(Block.OAK_LOG);
-        var result = rule.blockPlace(
+        var result = rule.blockPlace(new BlockPlacementRule.PlacementState(
                 null, rule.getBlock(), blockFace, null,
-                null, null, null
-        );
+                null, null, null, false
+        ));
         assertEquals(expected, result.getProperty("axis"));
     }
 
@@ -35,7 +37,7 @@ class AxisPlacementRuleTest {
         // Just a marker to add tests in case the impl ever changes.
         var rule = new AxisPlacementRule(Block.OAK_LOG);
         Block block = Block.BLACK_WOOL; // Not even a valid block
-        var result = rule.blockUpdate(null, null, block);
+        var result = rule.blockUpdate(new BlockPlacementRule.UpdateState(null, null, block));
         assertSame(block, result);
     }
 
