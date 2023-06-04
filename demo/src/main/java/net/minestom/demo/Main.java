@@ -12,7 +12,9 @@ import net.minestom.server.event.server.ServerListPingEvent;
 import net.minestom.server.extras.lan.OpenToLAN;
 import net.minestom.server.extras.lan.OpenToLANConfig;
 import net.minestom.server.extras.optifine.OptifineSupport;
+import net.minestom.server.instance.block.Block;
 import net.minestom.server.instance.block.BlockManager;
+import net.minestom.server.instance.block.rule.vanilla.CandlePlacementRule;
 import net.minestom.server.instance.block.rule.vanilla.RedstonePlacementRule;
 import net.minestom.server.ping.ResponseData;
 import net.minestom.server.utils.identity.NamedAndIdentified;
@@ -54,6 +56,8 @@ public class Main {
         commandManager.register(new ExecuteCommand());
         commandManager.register(new RedirectTestCommand());
         commandManager.register(new DisplayCommand());
+
+        MinecraftServer.getBlockManager().registerBlockPlacementRule(new CandlePlacementRule(Block.BLACK_CANDLE));
 
 
         commandManager.setUnknownCommandCallback((sender, command) -> sender.sendMessage(Component.text("Unknown command", NamedTextColor.RED)));

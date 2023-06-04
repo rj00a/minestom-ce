@@ -170,6 +170,7 @@ public final class Registry {
         private final boolean air;
         private final boolean solid;
         private final boolean liquid;
+        private final boolean replaceable;
         private final String blockEntity;
         private final int blockEntityId;
         private final Supplier<Material> materialSupplier;
@@ -190,6 +191,7 @@ public final class Registry {
             this.air = main.getBoolean("air", false);
             this.solid = main.getBoolean("solid");
             this.liquid = main.getBoolean("liquid", false);
+            this.replaceable = main.getBoolean("replaceable", false);
             {
                 Properties blockEntity = main.section("blockEntity");
                 if (blockEntity != null) {
@@ -256,6 +258,10 @@ public final class Registry {
 
         public boolean isLiquid() {
             return liquid;
+        }
+
+        public boolean isReplaceable() {
+            return replaceable;
         }
 
         public boolean isBlockEntity() {

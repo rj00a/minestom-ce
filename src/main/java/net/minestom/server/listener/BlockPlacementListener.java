@@ -34,7 +34,7 @@ public class BlockPlacementListener {
         final PlayerInventory playerInventory = player.getInventory();
         final Player.Hand hand = packet.hand();
         final BlockFace blockFace = packet.blockFace();
-        final Point blockPosition = packet.blockPosition();
+        Point blockPosition = packet.blockPosition();
 
         final Instance instance = player.getInstance();
         if (instance == null)
@@ -87,10 +87,20 @@ public class BlockPlacementListener {
         }
 
         // Get the newly placed block position
-        final int offsetX = blockFace == BlockFace.WEST ? -1 : blockFace == BlockFace.EAST ? 1 : 0;
-        final int offsetY = blockFace == BlockFace.BOTTOM ? -1 : blockFace == BlockFace.TOP ? 1 : 0;
-        final int offsetZ = blockFace == BlockFace.NORTH ? -1 : blockFace == BlockFace.SOUTH ? 1 : 0;
-        final Point placementPosition = blockPosition.add(offsetX, offsetY, offsetZ);
+        Point placementPosition = blockPosition;
+        if (!interactedBlock.registry().isReplaceable()) {
+            // If the block is not replaceable, try to place next to it.
+            final int offsetX = blockFace == BlockFace.WEST ? -1 : blockFace == BlockFace.EAST ? 1 : 0;
+            final int offsetY = blockFace == BlockFace.BOTTOM ? -1 : blockFace == BlockFace.TOP ? 1 : 0;
+            final int offsetZ = blockFace == BlockFace.NORTH ? -1 : blockFace == BlockFace.SOUTH ? 1 : 0;
+            placementPosition = blockPosition.add(offsetX, offsetY, offsetZ);
+
+            var placementBlock = instance.getBlock(placementPosition);
+            if (!placementBlock.registry().isReplaceable()) {
+                // If the block is still not replaceable, cancel the placement
+                canPlaceBlock = false;
+            }
+        }
 
         if (!canPlaceBlock) {
             // Send a block change with the real block in the instance to keep the client in sync,
@@ -136,8 +146,34 @@ public class BlockPlacementListener {
         final BlockPlacementRule blockPlacementRule = BLOCK_MANAGER.getBlockPlacementRule(resultBlock);
         if (blockPlacementRule != null) {
             // Get id from block placement rule instead of the event
-            resultBlock = blockPlacementRule.blockPlace(instance, resultBlock, blockFace, blockPosition, player);
+
+            var existingBlock = instance.getBlock(placementPosition);
+            if (blockPlacementRule.isSelfReplaceable() && interactedBlock.id() == resultBlock.id()) {
+                System.out.println("replace 1");
+                // Handle click on block to replace
+                placementPosition = blockPosition;
+                resultBlock = blockPlacementRule.blockReplace(
+                        instance, resultBlock, blockFace,
+                        blockPosition, cursorPosition,
+                        player.getPosition(), usedItem.meta()
+                );
+            } else if (blockPlacementRule.isSelfReplaceable() && existingBlock.id() == resultBlock.id()) {
+                System.out.println("replace 2");
+                // Handle next block click on non-solid blocks
+                resultBlock = blockPlacementRule.blockReplace(
+                        instance, resultBlock, blockFace,
+                        placementPosition, cursorPosition,
+                        player.getPosition(), usedItem.meta()
+                );
+            } else {
+                resultBlock = blockPlacementRule.blockPlace(
+                        instance, resultBlock, blockFace,
+                        blockPosition, cursorPosition,
+                        player.getPosition(), usedItem.meta()
+                );
+            }
         }
+        System.out.println("ReSULT BLOCK: " + resultBlock);
         if (resultBlock == null) {
             refresh(player, chunk);
             return;

@@ -1,12 +1,12 @@
 package net.minestom.server.instance.block.rule.vanilla;
 
-import net.minestom.server.entity.Player;
-import net.minestom.server.instance.Instance;
+import net.minestom.server.coordinate.Point;
+import net.minestom.server.coordinate.Pos;
 import net.minestom.server.instance.block.Block;
 import net.minestom.server.instance.block.BlockFace;
 import net.minestom.server.instance.block.rule.BlockPlacementRule;
+import net.minestom.server.item.ItemMeta;
 import net.minestom.server.utils.block.BlockUtils;
-import net.minestom.server.coordinate.Point;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
@@ -18,7 +18,7 @@ public class RedstonePlacementRule extends BlockPlacementRule {
     }
 
     @Override
-    public @NotNull Block blockUpdate(@NotNull Instance instance, @NotNull Point blockPosition, @NotNull Block block) {
+    public @NotNull Block blockUpdate(@NotNull Block.Getter instance, @NotNull Point blockPosition, @NotNull Block block) {
         BlockUtils blockUtils = new BlockUtils(instance, blockPosition);
 
         String east = "none";
@@ -97,9 +97,15 @@ public class RedstonePlacementRule extends BlockPlacementRule {
     }
 
     @Override
-    public Block blockPlace(@NotNull Instance instance,
-                            @NotNull Block block, @NotNull BlockFace blockFace, @NotNull Point blockPosition,
-                            @NotNull Player pl) {
+    public Block blockPlace(
+            @NotNull Block.Getter instance,
+            @NotNull Block block,
+            @NotNull BlockFace blockFace,
+            @NotNull Point blockPosition,
+            @NotNull Point cursorPosition,
+            @NotNull Pos playerPosition,
+            @NotNull ItemMeta usedItemMeta
+    ) {
         final Block belowBlock = instance.getBlock(blockPosition.sub(0, 1, 0));
         return belowBlock.isSolid() ? block : null;
     }
