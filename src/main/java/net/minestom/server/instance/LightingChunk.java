@@ -18,9 +18,13 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+
+import static net.minestom.server.instance.light.LightCompute.emptyContent;
 
 public class LightingChunk extends DynamicChunk {
     private int[] heightmap;
@@ -169,7 +173,7 @@ public class LightingChunk extends DynamicChunk {
 
             // System.out.println("Relit sky: " + wasUpdatedSky + " block: " + wasUpdatedBlock + " for section " + (index + minSection) + " in chunk " + chunkX + " " + chunkZ);
 
-            if ((wasUpdatedSky || sendAll) && this.instance.getDimensionType().isSkylightEnabled()) {
+            if ((wasUpdatedSky || (sendAll && skyLight != emptyContent)) && this.instance.getDimensionType().isSkylightEnabled()) {
                 if (skyLight.length != 0) {
                     skyLights.add(skyLight);
                     skyMask.set(index);
@@ -178,7 +182,7 @@ public class LightingChunk extends DynamicChunk {
                 }
             }
 
-            if (wasUpdatedBlock || sendAll) {
+            if (wasUpdatedBlock || (sendAll && blockLight != emptyContent)) {
                 if (blockLight.length != 0) {
                     blockLights.add(blockLight);
                     blockMask.set(index);
@@ -203,7 +207,9 @@ public class LightingChunk extends DynamicChunk {
     private static final Set<LightingChunk> sendQueue = ConcurrentHashMap.newKeySet();
     private static Task sendingTask = null;
 
-    private static void updateAfterGeneration(LightingChunk chunk) {
+    private static ReentrantLock lightQueueLock = new ReentrantLock();
+
+    public static void updateAfterGeneration(LightingChunk chunk) {
         for (int i = -1; i <= 1; i++) {
             for (int j = -1; j <= 1; j++) {
                 Chunk neighborChunk = chunk.instance.getChunk(chunk.chunkX + i, chunk.chunkZ + j);
@@ -215,10 +221,13 @@ public class LightingChunk extends DynamicChunk {
             }
         }
 
+        lightQueueLock.lock();
         if (sendingTask != null) sendingTask.cancel();
+        System.out.println("CREATING TASK");
         sendingTask = MinecraftServer.getSchedulerManager().scheduleTask(() -> {
             sendingTask = null;
 
+            System.out.println("RUNNING TASK");
             for (LightingChunk f : sendQueue) {
                 if (f.isLoaded()) {
                     f.sections.forEach(s -> {
@@ -232,7 +241,9 @@ public class LightingChunk extends DynamicChunk {
                     f.sendLighting();
                 }
             }
+            sendQueue.clear();
         }, TaskSchedule.tick(10), TaskSchedule.stop(), ExecutionType.ASYNC);
+        lightQueueLock.unlock();
     }
 
     private static void flushQueue(Instance instance, Set<Point> queue, LightType type) {

@@ -17,10 +17,7 @@ import net.minestom.server.event.item.ItemDropEvent;
 import net.minestom.server.event.item.PickupItemEvent;
 import net.minestom.server.event.player.*;
 import net.minestom.server.event.server.ServerTickMonitorEvent;
-import net.minestom.server.instance.Instance;
-import net.minestom.server.instance.InstanceContainer;
-import net.minestom.server.instance.InstanceManager;
-import net.minestom.server.instance.LightingChunk;
+import net.minestom.server.instance.*;
 import net.minestom.server.instance.block.Block;
 import net.minestom.server.inventory.Inventory;
 import net.minestom.server.inventory.InventoryType;
@@ -35,9 +32,8 @@ import net.minestom.server.utils.time.TimeUnit;
 import net.minestom.server.world.DimensionType;
 
 import java.time.Duration;
-import java.util.Collection;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -126,10 +122,23 @@ public class PlayerInit {
         instanceContainer.setGenerator(unit -> unit.modifier().fillHeight(0, 40, Block.STONE));
         instanceContainer.setChunkSupplier(LightingChunk::new);
 
-        if (false) {
+        if (true) {
             System.out.println("start");
-            ChunkUtils.forChunksInRange(0, 0, 10, (x, z) -> instanceContainer.loadChunk(x, z).join());
-            System.out.println("load end");
+            var chunks = Collections.synchronizedList(new ArrayList<CompletableFuture<Chunk>>());
+            ChunkUtils.forChunksInRange(0, 0, 12, (x, z) -> {
+                var c = instanceContainer.loadChunk(x, z).thenApply(c2 -> {
+                    ((DynamicChunk) c2).chunkCache.body();
+                    return c2;
+                });
+                chunks.add(c);
+
+            });
+
+            CompletableFuture.runAsync(() -> {
+                CompletableFuture.allOf(chunks.toArray(CompletableFuture[]::new)).join();
+                System.out.println("load end");
+            });
+
         }
 
         inventory = new Inventory(InventoryType.CHEST_1_ROW, Component.text("Test inventory"));

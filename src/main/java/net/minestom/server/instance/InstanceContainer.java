@@ -275,6 +275,10 @@ public class InstanceContainer extends Instance {
                 })
                 // cache the retrieved chunk
                 .thenAccept(chunk -> {
+                    if (chunk instanceof LightingChunk c) {
+                        LightingChunk.updateAfterGeneration(c);
+                    }
+
                     // TODO run in the instance thread?
                     cacheChunk(chunk);
                     EventDispatcher.call(new InstanceChunkLoadEvent(this, chunk));

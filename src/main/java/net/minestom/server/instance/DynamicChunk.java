@@ -46,7 +46,7 @@ public class DynamicChunk extends Chunk {
     protected final Int2ObjectOpenHashMap<Block> tickableMap = new Int2ObjectOpenHashMap<>(0);
 
     private long lastChange;
-    final CachedPacket chunkCache = new CachedPacket(this::createChunkPacket);
+    public final CachedPacket chunkCache = new CachedPacket(this::createChunkPacket);
 
     public DynamicChunk(@NotNull Instance instance, int chunkX, int chunkZ) {
         super(instance, chunkX, chunkZ, true);

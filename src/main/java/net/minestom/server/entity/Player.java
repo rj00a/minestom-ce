@@ -695,7 +695,28 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
             chunksLoadedByClient = new Vec(chunkX, chunkZ);
             chunkUpdateLimitChecker.addToHistory(getChunk());
             sendPacket(new UpdateViewPositionPacket(chunkX, chunkZ));
-            ChunkUtils.forChunksInRange(spawnPosition, MinecraftServer.getChunkViewDistance(), chunkAdder);
+
+            chunkAdder.accept(0, 0);
+
+            CompletableFuture.runAsync(() -> {
+                int i = 0;
+                var iter = ChunkUtils.getChunksInRangeBlah(spawnPosition, MinecraftServer.getChunkViewDistance());
+                while (iter.hasNext()) {
+                    var next = iter.next();
+
+                    if (i++ % 5 == 0) {
+                        try {
+                            Thread.sleep(20);
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+
+                    chunkAdder.accept(ChunkUtils.getChunkCoordX(next), ChunkUtils.getChunkCoordZ(next));
+                }
+            });
+
+//            ChunkUtils.forChunksInRange(spawnPosition, MinecraftServer.getChunkViewDistance(), chunkAdder);
         }
 
         synchronizePosition(true); // So the player doesn't get stuck

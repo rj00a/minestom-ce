@@ -9,9 +9,12 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 @ApiStatus.Internal
 public final class ChunkUtils {
@@ -169,12 +172,113 @@ public final class ChunkUtils {
         forDifferingChunksInRange(oldChunkX, oldChunkZ, newChunkX, newChunkZ, range, oldCallback);
     }
 
-    public static void forChunksInRange(int chunkX, int chunkZ, int range, IntegerBiConsumer consumer) {
-        for (int x = -range; x <= range; ++x) {
-            for (int z = -range; z <= range; ++z) {
-                consumer.accept(chunkX + x, chunkZ + z);
+    public static Iterator<Long> getChunksInRangeBlah(int chunkX, int chunkZ, int range) {
+        var entries = new ArrayList<Long>((range * 2 + 1) * (range * 2 + 1));
+
+        entries.add(getChunkIndex(chunkX, chunkZ));
+        for (int r = 1; r <= range; r++) {
+            for (int x = chunkX - r; x <= chunkX + r; x++) {
+                int minZ = chunkZ - r;
+                int maxZ = chunkZ + r;
+                if (isWithinRadius(chunkX, chunkZ, x, minZ, range)) {
+                    entries.add(getChunkIndex(x, minZ));
+                }
+                if (isWithinRadius(chunkX, chunkZ, x, maxZ, range)) {
+                    entries.add(getChunkIndex(x, maxZ));
+                }
+            }
+
+            for (int z = chunkZ - r + 1; z <= chunkZ + r - 1; z++) {
+                int minX = chunkX - r;
+                int maxX = chunkX + r;
+                if (isWithinRadius(chunkX, chunkZ, minX, z, range)) {
+                    entries.add(getChunkIndex(minX, z));
+                }
+                if (isWithinRadius(chunkX, chunkZ, maxX, z, range)) {
+                    entries.add(getChunkIndex(maxX, z));
+                }
             }
         }
+
+        return entries.iterator();
+    }
+
+    public static Iterator<Long> getChunksInRangeBlah(@NotNull Point point, int range) {
+        return getChunksInRangeBlah(point.chunkX(), point.chunkZ(), range);
+    }
+
+    public static void forChunksInRange(int chunkX, int chunkZ, int range, IntegerBiConsumer consumer) {
+        consumer.accept(chunkX, chunkZ); // Process the center chunk
+        for (int r = 1; r <= range; r++) {
+            for (int x = chunkX - r; x <= chunkX + r; x++) {
+                int minZ = chunkZ - r;
+                int maxZ = chunkZ + r;
+                if (isWithinRadius(chunkX, chunkZ, x, minZ, range)) {
+                    consumer.accept(x, minZ);
+                }
+                if (isWithinRadius(chunkX, chunkZ, x, maxZ, range)) {
+                    consumer.accept(x, maxZ);
+                }
+            }
+
+            for (int z = chunkZ - r + 1; z <= chunkZ + r - 1; z++) {
+                int minX = chunkX - r;
+                int maxX = chunkX + r;
+                if (isWithinRadius(chunkX, chunkZ, minX, z, range)) {
+                    consumer.accept(minX, z);
+                }
+                if (isWithinRadius(chunkX, chunkZ, maxX, z, range)) {
+                    consumer.accept(maxX, z);
+                }
+            }
+        }
+
+//        // Start from the center chunk (0, 0)
+//        int currentX = 0;
+//        int currentZ = 0;
+//        consumer.accept(currentX, currentZ);
+//
+//        // Process concentric circles moving outward
+//        for (int radius = 1; radius <= range; radius++) {
+//            // Top row of the current circle
+//            for (int x = -radius; x <= radius; x++) {
+//                currentX = chunkX + x;
+//                currentZ = chunkZ - radius;
+//                consumer.accept(currentX, currentZ);
+//            }
+//
+//            // Right side of the current circle (excluding the top-right and bottom-right corners)
+//            for (int z = -radius + 1; z <= radius - 1; z++) {
+//                currentX = chunkX + radius;
+//                currentZ = chunkZ + z;
+//                consumer.accept(currentX, currentZ);
+//            }
+//
+//            // Bottom row of the current circle
+//            for (int x = radius; x >= -radius; x--) {
+//                currentX = chunkX + x;
+//                currentZ = chunkZ + radius;
+//                consumer.accept(currentX, currentZ);
+//            }
+//
+//            // Left side of the current circle (excluding the top-left and bottom-left corners)
+//            for (int z = radius - 1; z >= -radius + 1; z--) {
+//                currentX = chunkX - radius;
+//                currentZ = chunkZ + z;
+//                consumer.accept(currentX, currentZ);
+//            }
+//        }
+
+//        for (int x = -range; x <= range; ++x) {
+//            for (int z = -range; z <= range; ++z) {
+//                consumer.accept(chunkX + x, chunkZ + z);
+//            }
+//        }
+    }
+
+    private static boolean isWithinRadius(int centerX, int centerY, int x, int y, int radius) {
+        int distance = Math.abs(centerX - x) + Math.abs(centerY - y);
+        return distance <= radius;
     }
 
     public static void forChunksInRange(@NotNull Point point, int range, IntegerBiConsumer consumer) {
