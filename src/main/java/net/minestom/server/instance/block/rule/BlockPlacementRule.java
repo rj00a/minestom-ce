@@ -25,7 +25,9 @@ public abstract class BlockPlacementRule {
      * @param updateState The current parameters to the block update
      * @return the updated block
      */
-    public abstract @NotNull Block blockUpdate(@NotNull UpdateState updateState);
+    public @NotNull Block blockUpdate(@NotNull UpdateState updateState) {
+        return updateState.currentBlock();
+    }
 
     /**
      * Called when the block is placed.
@@ -36,7 +38,7 @@ public abstract class BlockPlacementRule {
      */
     public abstract @Nullable Block blockPlace(@NotNull PlacementState placementState);
 
-    public boolean isSelfReplaceable(@NotNull Block block) {
+    public boolean isSelfReplaceable(@NotNull Block block, @NotNull BlockFace blockFace, @NotNull Point cursorPosition) {
         return false;
     }
 

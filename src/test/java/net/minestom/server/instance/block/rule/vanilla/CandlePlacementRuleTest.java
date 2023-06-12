@@ -2,6 +2,7 @@ package net.minestom.server.instance.block.rule.vanilla;
 
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.instance.block.Block;
+import net.minestom.server.instance.block.BlockFace;
 import net.minestom.server.instance.block.rule.BlockPlacementRule;
 import net.minestom.server.instance.block.rule.vanilla.placementrules.BlockStackingPlacementRule;
 import net.minestom.testing.util.MockBlockGetter;
@@ -62,10 +63,10 @@ class CandlePlacementRuleTest {
     void testSelfReplaceable() {
         // 1-3 candles are self replaceable, 4 is not
         var rule = new BlockStackingPlacementRule(Block.BLACK_CANDLE, BlockStackingPlacementRule.CANDLE_PROPERTY);
-        assertTrue(rule.isSelfReplaceable(Block.BLACK_CANDLE.withProperty("candles", "1")));
-        assertTrue(rule.isSelfReplaceable(Block.BLACK_CANDLE.withProperty("candles", "2")));
-        assertTrue(rule.isSelfReplaceable(Block.BLACK_CANDLE.withProperty("candles", "3")));
-        assertFalse(rule.isSelfReplaceable(Block.BLACK_CANDLE.withProperty("candles", "4")));
+        assertTrue(rule.isSelfReplaceable(Block.BLACK_CANDLE.withProperty("candles", "1"), BlockFace.TOP, Vec.ZERO));
+        assertTrue(rule.isSelfReplaceable(Block.BLACK_CANDLE.withProperty("candles", "2"), BlockFace.TOP, Vec.ZERO));
+        assertTrue(rule.isSelfReplaceable(Block.BLACK_CANDLE.withProperty("candles", "3"), BlockFace.TOP, Vec.ZERO));
+        assertFalse(rule.isSelfReplaceable(Block.BLACK_CANDLE.withProperty("candles", "4"), BlockFace.TOP, Vec.ZERO));
     }
 
 }

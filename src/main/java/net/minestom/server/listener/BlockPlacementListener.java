@@ -92,7 +92,7 @@ public class BlockPlacementListener {
         //todo it feels like it should be possible to have better replacement rules than this, feels pretty scuffed.
         Point placementPosition = blockPosition;
         var interactedPlacementRule = BLOCK_MANAGER.getBlockPlacementRule(interactedBlock);
-        if (!interactedBlock.registry().isReplaceable() && (interactedPlacementRule == null || !interactedPlacementRule.isSelfReplaceable(interactedBlock))) {
+        if (interactedPlacementRule == null || !interactedPlacementRule.isSelfReplaceable(interactedBlock, blockFace, cursorPosition)) {
             // If the block is not replaceable, try to place next to it.
             final int offsetX = blockFace == BlockFace.WEST ? -1 : blockFace == BlockFace.EAST ? 1 : 0;
             final int offsetY = blockFace == BlockFace.BOTTOM ? -1 : blockFace == BlockFace.TOP ? 1 : 0;
@@ -101,7 +101,8 @@ public class BlockPlacementListener {
 
             var placementBlock = instance.getBlock(placementPosition);
             var placementRule = BLOCK_MANAGER.getBlockPlacementRule(placementBlock);
-            if (!placementBlock.registry().isReplaceable() && (placementRule == null || !placementRule.isSelfReplaceable(placementBlock))) {
+            if (!placementBlock.registry().isReplaceable() && (placementRule == null ||
+                    !placementRule.isSelfReplaceable(placementBlock, blockFace, cursorPosition))) {
                 // If the block is still not replaceable, cancel the placement
                 canPlaceBlock = false;
             }

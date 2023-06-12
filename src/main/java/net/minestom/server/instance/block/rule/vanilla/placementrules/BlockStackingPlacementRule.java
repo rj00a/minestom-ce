@@ -1,6 +1,8 @@
 package net.minestom.server.instance.block.rule.vanilla.placementrules;
 
+import net.minestom.server.coordinate.Point;
 import net.minestom.server.instance.block.Block;
+import net.minestom.server.instance.block.BlockFace;
 import net.minestom.server.instance.block.rule.BlockPlacementRule;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -37,7 +39,7 @@ public class BlockStackingPlacementRule extends BlockPlacementRule {
     }
 
     @Override
-    public boolean isSelfReplaceable(@NotNull Block block) {
+    public boolean isSelfReplaceable(@NotNull Block block, @NotNull BlockFace blockFace, @NotNull Point cursorPosition) {
         return Integer.parseInt(block.properties().get(property)) != MAX_AMOUNT;
     }
 }

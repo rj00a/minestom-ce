@@ -33,6 +33,10 @@ public enum BlockFace {
         };
     }
 
+    public boolean isSimilar(@NotNull BlockFace other) {
+        return this == other || this == other.getOppositeFace();
+    }
+
     /**
      * Gets the horizontal BlockFace from the given yaw angle
      *
