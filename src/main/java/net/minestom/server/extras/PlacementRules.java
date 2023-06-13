@@ -149,5 +149,10 @@ public final class PlacementRules {
         for (var trapdoorId : BlockTags.MINECRAFT_TRAPDOORS.getValues()) {
             blockManager.registerBlockPlacementRule(new TrapdoorPlacementRule(Block.fromNamespaceId(trapdoorId)));
         }
+
+        // Doors
+        for (var doorID : BlockTags.MINECRAFT_DOORS.getValues()) {
+            blockManager.registerBlockPlacementRule(new DoorPlacementRule(Block.fromNamespaceId(doorID)));
+        }
 	}
 }

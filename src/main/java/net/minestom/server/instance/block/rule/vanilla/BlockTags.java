@@ -36,6 +36,8 @@ public final class BlockTags {
 
     public static final Tag MINECRAFT_BANNERS = Objects.requireNonNull(TAG_MANAGER.getTag(Tag.BasicType.BLOCKS, "minecraft:banners"));
 
+    public static final Tag MINECRAFT_DOORS = Objects.requireNonNull(TAG_MANAGER.getTag(Tag.BasicType.BLOCKS, "minecraft:doors"));
+
     public static final Set<Integer> PANES = Set.of(
             Block.GLASS_PANE.id(),
             Block.WHITE_STAINED_GLASS_PANE.id(),

@@ -15,15 +15,9 @@ public class FacingPlacementRule extends BlockPlacementRule {
     }
 
     @Override
-    public @NotNull Block blockUpdate(@NotNull UpdateState updateState) {
-        return updateState.currentBlock();
-    }
-
-    @Override
     public @Nullable Block blockPlace(@NotNull PlacementState placementState) {
         var facing = BlockFace.fromYaw(placementState.playerPosition().yaw());
         if (invert) facing = facing.getOppositeFace();
         return block.withProperty("facing", facing.name().toLowerCase());
     }
-
 }
