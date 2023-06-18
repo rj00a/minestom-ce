@@ -713,7 +713,7 @@ public class Player extends LivingEntity implements CommandSender, Localizable, 
                         chunkAdder.accept(ChunkUtils.getChunkCoordX(next), ChunkUtils.getChunkCoordZ(next));
                     }
 
-                    return TaskSchedule.tick(2);
+                    return TaskSchedule.tick(10);
                 };
                 scheduler().submitTask(taskRunnable);
             } else {
