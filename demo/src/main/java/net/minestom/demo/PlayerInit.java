@@ -120,6 +120,8 @@ public class PlayerInit {
                 var itemStack = event.getItemStack();
                 var block = event.getInstance().getBlock(event.getPosition());
 
+                event.getPlayer().sendMessage("MESSAGE " + ThreadLocalRandom.current().nextDouble());
+
                 if ("false".equals(block.getProperty("waterlogged")) && itemStack.material().equals(Material.WATER_BUCKET)) {
                     block = block.withProperty("waterlogged", "true");
                     System.out.println("SET WATERLOGGER");
