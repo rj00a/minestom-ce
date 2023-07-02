@@ -27,10 +27,6 @@ import java.util.stream.Stream;
 import static net.minestom.server.instance.light.LightCompute.emptyContent;
 
 public class LightingChunk extends DynamicChunk {
-
-    private static final int LIGHTING_CHUNKS_PER_SEND = Integer.getInteger("minestom.lighting.chunks-per-send", 10);
-    private static final int LIGHTING_CHUNKS_SEND_DELAY = Integer.getInteger("minestom.lighting.chunks-send-delay", 100);
-
     private int[] heightmap;
     final CachedPacket lightCache = new CachedPacket(this::createLightPacket);
     boolean sendNeighbours = true;
@@ -246,43 +242,20 @@ public class LightingChunk extends DynamicChunk {
             queuedChunks.clear();
             queueLock.unlock();
 
-            // if (copy.size() != 0) {
-            //     System.out.println("Sending lighting for " + copy.size() + " chunks");
-            // }
-
-            int count = 0;
-
             for (LightingChunk f : copy) {
-                f.sections.forEach(s -> {
-                    s.blockLight().invalidate();
-                    s.skyLight().invalidate();
-                });
                 f.chunkCache.invalidate();
                 f.lightCache.invalidate();
+
+                for (var section : f.sections) {
+                    section.skyLight().invalidate();
+                    section.blockLight().invalidate();
+                }
             }
 
             // Load all the lighting
             for (LightingChunk f : copy) {
                 if (f.isLoaded()) {
-                    f.lightCache.body();
-                }
-            }
-
-            // Send it slowly
-            for (LightingChunk f : copy) {
-                if (f.isLoaded()) {
                     f.sendLighting();
-                    if (f.getViewers().size() == 0) return;
-                }
-                count++;
-
-                if (count % LIGHTING_CHUNKS_PER_SEND == 0) {
-                    // System.out.println("Sent " + count + " lighting chunks " + (count * 100 / copy.size()) + "%");
-                    try {
-                        Thread.sleep(LIGHTING_CHUNKS_SEND_DELAY);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
                 }
             }
         }, TaskSchedule.immediate(), TaskSchedule.tick(20), ExecutionType.ASYNC);
@@ -403,7 +376,6 @@ public class LightingChunk extends DynamicChunk {
     private static void relight(Instance instance, Set<Point> sections, LightType type) {
         Set<Point> toPropagate = sections
                 .parallelStream()
-                // .stream()
                 .map(chunkIndex -> {
                     final Chunk chunk = instance.getChunk(chunkIndex.blockX(), chunkIndex.blockZ());
                     final int section = chunkIndex.blockY();
@@ -413,7 +385,6 @@ public class LightingChunk extends DynamicChunk {
                 }).filter(Objects::nonNull)
                 .flatMap(lightSet -> lightSet.flip().stream())
                 .collect(Collectors.toSet())
-                // .stream()
                 .parallelStream()
                 .flatMap(sectionLocation -> {
                     final Chunk chunk = instance.getChunk(sectionLocation.blockX(), sectionLocation.blockZ());
