@@ -255,9 +255,22 @@ public class LightingChunk extends DynamicChunk {
             // Load all the lighting
             for (LightingChunk f : copy) {
                 if (f.isLoaded()) {
+                    f.lightCache.body();
+                }
+            }
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            for (LightingChunk f : copy) {
+                if (f.isLoaded()) {
                     f.sendLighting();
                 }
             }
+
         }, TaskSchedule.immediate(), TaskSchedule.tick(20), ExecutionType.ASYNC);
         lightLock.unlock();
     }
