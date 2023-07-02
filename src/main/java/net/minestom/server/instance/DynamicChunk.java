@@ -212,7 +212,7 @@ public class DynamicChunk extends Chunk {
         }
 
         if (this instanceof LightingChunk light) {
-            // LightingChunk.updateAfterGeneration(light);
+            LightingChunk.updateAfterGeneration(light);
             return new ChunkDataPacket(chunkX, chunkZ,
                     new ChunkData(heightmapsNBT, data, entries),
                     createEmptyLight()
