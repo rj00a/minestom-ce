@@ -210,15 +210,6 @@ public class LightingChunk extends DynamicChunk {
     private static final ReentrantLock lightLock = new ReentrantLock();
     private static final ReentrantLock queueLock = new ReentrantLock();
 
-    public static void queueLightResend(LightingChunk light) {
-        queueLock.lock();
-
-        if (queuedChunks.add(ChunkUtils.getChunkIndex(light.chunkX, light.chunkZ))) {
-            sendQueue.add(light);
-        }
-        queueLock.unlock();
-    }
-
     static void updateAfterGeneration(LightingChunk chunk) {
         for (int i = -1; i <= 1; i++) {
             for (int j = -1; j <= 1; j++) {
@@ -249,9 +240,9 @@ public class LightingChunk extends DynamicChunk {
             queuedChunks.clear();
             queueLock.unlock();
 
-            if (copy.size() != 0) {
-                System.out.println("Sending lighting for " + copy.size() + " chunks");
-            }
+            // if (copy.size() != 0) {
+            //     System.out.println("Sending lighting for " + copy.size() + " chunks");
+            // }
 
             int count = 0;
 
