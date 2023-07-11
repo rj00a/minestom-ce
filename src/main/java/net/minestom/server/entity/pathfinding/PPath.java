@@ -15,7 +15,7 @@ public class PPath {
     private final BoundingBox boundingBox;
     private final Instance instance;
     private final List<PNode> nodes = new ArrayList<>();
-    private final double pathSegmentCost;
+    private final double pathVariance;
     private final double maxDistance;
     private int index = 0;
     private final Pos initialPosition;
@@ -24,13 +24,13 @@ public class PPath {
         return nodes;
     }
 
-    public PPath(Pos point, Instance instance, BoundingBox boundingBox, double maxDistance, double pathSegmentCost, Consumer<Void> onComplete) {
+    public PPath(Pos point, Instance instance, BoundingBox boundingBox, double maxDistance, double pathVariance, Consumer<Void> onComplete) {
         this.onComplete = onComplete;
         this.initialPosition = point;
         this.instance = instance;
         this.boundingBox = boundingBox;
         this.maxDistance = maxDistance;
-        this.pathSegmentCost = pathSegmentCost;
+        this.pathVariance = pathVariance;
     }
 
     void runComplete() {
@@ -80,7 +80,7 @@ public class PPath {
         return maxDistance;
     }
 
-    double pathSegmentCost() {
-        return pathSegmentCost;
+    double pathVariance() {
+        return pathVariance;
     }
 }

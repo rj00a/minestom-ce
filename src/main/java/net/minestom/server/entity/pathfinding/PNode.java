@@ -85,7 +85,7 @@ public class PNode {
 
                 if (jumpPoint == null) continue;
                 if (!floorPoint.sameBlock(jumpPoint)) {
-                    var nodeJump = createJump(instance, jumpPoint, boundingBox, cost, point, goal);
+                    var nodeJump = createJump(instance, jumpPoint, boundingBox, cost + 1, point, goal);
                     if (nodeJump != null && !closed.contains(nodeJump)) nearby.add(nodeJump);
                 }
             }
@@ -172,7 +172,7 @@ public class PNode {
     private static boolean canMoveTowards(Instance instance, Pos start, Point end, BoundingBox boundingBox) {
         Point diff = end.sub(start);
         PhysicsResult res = CollisionUtils.handlePhysics(instance, instance.getChunkAt(start), boundingBox, start, Vec.fromPoint(diff), null, false);
-        return res.newPosition().distanceSquared(end) < 0.01;
+        return !res.collisionZ() && !res.collisionY() && !res.collisionX();
     }
 
     static Pos moveTowards(Instance instance, Pos start, Point end, BoundingBox boundingBox) {

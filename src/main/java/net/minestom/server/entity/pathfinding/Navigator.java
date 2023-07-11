@@ -111,10 +111,12 @@ public final class Navigator {
      *
      * @param point the position to find the path to, null to reset the pathfinder
      * @param minimumDistance distance to target when completed
-     * @param onComplete     called when the path has been completed
+     * @param maxDistance maximum search distance
+     * @param pathVariance how far to search off of the direct path. For open worlds, this can be low (around 20) and for large mazes this needs to be very high.
+     * @param onComplete called when the path has been completed
      * @return true if a path has been found
      */
-    public synchronized boolean setPathTo(@Nullable Point point, double minimumDistance, double maxDistance, double pathSegmentCost, Consumer<Void> onComplete) {
+    public synchronized boolean setPathTo(@Nullable Point point, double minimumDistance, double maxDistance, double pathVariance, Consumer<Void> onComplete) {
         if (point != null && goalPosition != null && point.samePoint(goalPosition) && this.path != null) {
             // Tried to set path to the same target position
             return false;
@@ -158,7 +160,7 @@ public final class Navigator {
                 this.entity.getPosition(),
                 point,
                 minimumDistance, maxDistance,
-                pathSegmentCost,
+                pathVariance,
                 this.entity.getBoundingBox(), onComplete);
 
         final boolean success = path != null;
@@ -187,7 +189,7 @@ public final class Navigator {
                     entity.getPosition(),
                     Pos.fromPoint(goalPosition),
                     minimumDistance, path.maxDistance(),
-                    path.pathSegmentCost(), entity.getBoundingBox(), null);
+                    path.pathVariance(), entity.getBoundingBox(), null);
 
             return;
         }
@@ -205,7 +207,7 @@ public final class Navigator {
 
         drawPath(path);
 
-        if (entity.getPosition().distance(currentTarget) < 0.65) path.next();
+        if (entity.getPosition().sameBlock(currentTarget)) path.next();
     }
 
     /**
@@ -228,7 +230,7 @@ public final class Navigator {
 
     public boolean isComplete() {
         if (this.path == null) return true;
-        return goalPosition == null || entity.getPosition().distance(goalPosition) < 0.65;
+        return goalPosition == null || entity.getPosition().sameBlock(goalPosition);
     }
 
     public List<PNode> getNodes() {
