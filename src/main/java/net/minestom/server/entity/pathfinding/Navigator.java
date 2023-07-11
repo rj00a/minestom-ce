@@ -1,10 +1,8 @@
 package net.minestom.server.entity.pathfinding;
 
-import com.extollit.gaming.ai.path.HydrazinePathFinder;
-import com.extollit.gaming.ai.path.PathOptions;
-import com.extollit.gaming.ai.path.model.IPath;
+import net.minestom.server.attribute.Attribute;
+import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.collision.CollisionUtils;
-import net.minestom.server.collision.PhysicsResult;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
@@ -13,11 +11,19 @@ import net.minestom.server.entity.LivingEntity;
 import net.minestom.server.instance.Chunk;
 import net.minestom.server.instance.Instance;
 import net.minestom.server.instance.WorldBorder;
+import net.minestom.server.particle.Particle;
+import net.minestom.server.particle.ParticleCreator;
 import net.minestom.server.utils.chunk.ChunkUtils;
 import net.minestom.server.utils.position.PositionUtils;
+import net.minestom.server.utils.time.Cooldown;
+import net.minestom.server.utils.time.TimeUnit;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.time.Duration;
+import java.util.List;
+import java.util.function.Consumer;
 
 // TODO all pathfinding requests could be processed in another thread
 
@@ -25,15 +31,14 @@ import org.jetbrains.annotations.Nullable;
  * Necessary object for all {@link NavigableEntity}.
  */
 public final class Navigator {
-    private final PFPathingEntity pathingEntity;
-    private HydrazinePathFinder pathFinder;
-    private Point pathPosition;
-
+    private Point goalPosition;
     private final Entity entity;
+    private PPath path;
+    private final Cooldown jumpCooldown = new Cooldown(Duration.of(20, TimeUnit.SERVER_TICK));
+    private double minimumDistance;
 
     public Navigator(@NotNull Entity entity) {
         this.entity = entity;
-        this.pathingEntity = new PFPathingEntity(this);
     }
 
     /**
@@ -44,7 +49,7 @@ public final class Navigator {
      * @param direction the targeted position
      * @param speed     define how far the entity will move
      */
-    public PhysicsResult moveTowards(@NotNull Point direction, double speed) {
+    public void moveTowards(@NotNull Point direction, double speed) {
         final Pos position = entity.getPosition();
         final double dx = direction.x() - position.x();
         final double dy = direction.y() - position.y();
@@ -62,8 +67,28 @@ public final class Navigator {
         final float pitch = PositionUtils.getLookPitch(dx, dy, dz);
         // Prevent ghosting
         final var physicsResult = CollisionUtils.handlePhysics(entity, new Vec(speedX, speedY, speedZ));
-        this.entity.refreshPosition(physicsResult.newPosition().withView(yaw, pitch));
-        return physicsResult;
+
+        var currentYaw = entity.getPosition().yaw();
+
+        // if difference between current yaw and target yaw is greater than 40 degrees, we need to rotate
+        var a = currentYaw - yaw;
+        a = (a + 180) % 360 - 180;
+
+        double minDiff = 30;
+
+        if (Math.abs(a) > minDiff) {
+            // rotate
+            if (a > 0) {
+                currentYaw -= minDiff;
+            } else {
+                currentYaw += minDiff;
+            }
+        } else {
+            // set yaw to target yaw
+            currentYaw = yaw;
+        }
+
+        this.entity.refreshPosition(Pos.fromPoint(physicsResult.newPosition()).withView(currentYaw, pitch));
     }
 
     public void jump(float height) {
@@ -71,37 +96,45 @@ public final class Navigator {
         this.entity.setVelocity(new Vec(0, height * 2.5f, 0));
     }
 
+    public synchronized boolean setPathTo(@Nullable Point point) {
+        BoundingBox bb = this.entity.getBoundingBox();
+        double centerToCorner = Math.sqrt(bb.width() * bb.width() + bb.depth() * bb.depth()) / 2 * 1.2;
+        return setPathTo(point, centerToCorner, null);
+    }
+
+    public synchronized boolean setPathTo(@Nullable Pos point) {
+        BoundingBox bb = this.entity.getBoundingBox();
+        double centerToCorner = Math.sqrt(bb.width() * bb.width() + bb.depth() * bb.depth()) / 2 * 1.2;
+        return setPathTo(point, centerToCorner, null);
+    }
+
     /**
-     * Retrieves the path to {@code position} and ask the entity to follow the path.
-     * <p>
-     * Can be set to null to reset the pathfinder.
-     * <p>
-     * The position is cloned, if you want the entity to continually follow this position object
-     * you need to call this when you want the path to update.
+     * Sets the path to {@code position} and ask the entity to follow the path.
      *
-     * @param point      the position to find the path to, null to reset the pathfinder
-     * @param bestEffort whether to use the best-effort algorithm to the destination,
-     *                   if false then this method is more likely to return immediately
+     * @param point the position to find the path to, null to reset the pathfinder
+     * @param minimumDistance distance to target when completed
+     * @param onComplete     called when the path has been completed
      * @return true if a path has been found
      */
-    public synchronized boolean setPathTo(@Nullable Point point, boolean bestEffort) {
-        if (point != null && pathPosition != null && point.samePoint(pathPosition)) {
+    public synchronized boolean setPathTo(@Nullable Point point, double minimumDistance, Consumer<Void> onComplete) {
+        minimumDistance = Math.max(minimumDistance, 0.8);
+
+        if (point != null && goalPosition != null && point.samePoint(goalPosition) && this.path != null) {
             // Tried to set path to the same target position
             return false;
         }
         final Instance instance = entity.getInstance();
-        if (pathFinder == null) {
-            // Unexpected error
-            return false;
-        }
-        this.pathFinder.reset();
         if (point == null) {
+            this.path = null;
             return false;
         }
+
         // Can't path with a null instance.
         if (instance == null) {
+            this.path = null;
             return false;
         }
+
         // Can't path outside the world border
         final WorldBorder worldBorder = instance.getWorldBorder();
         if (!worldBorder.isInside(point)) {
@@ -113,34 +146,73 @@ public final class Navigator {
             return false;
         }
 
-        final PathOptions pathOptions = new PathOptions()
-                .targetingStrategy(bestEffort ? PathOptions.TargetingStrategy.gravitySnap :
-                        PathOptions.TargetingStrategy.none);
-        final IPath path = pathFinder.initiatePathTo(
-                point.x(),
-                point.y(),
-                point.z(),
-                pathOptions);
+        this.minimumDistance = minimumDistance;
+        if (this.entity.getPosition().distance(point) < minimumDistance) {
+            onComplete.accept(null);
+            return false;
+        }
+
+        if (goalPosition != null && point.distance(goalPosition) < 1) {
+            onComplete.accept(null);
+            return false;
+        }
+
+        this.path = PathGenerator.generate(instance,
+                this.entity.getPosition(),
+                point,
+                500,
+                minimumDistance,
+                this.entity.getBoundingBox(), onComplete);
 
         final boolean success = path != null;
-        this.pathPosition = success ? point : null;
+        this.goalPosition = success ? point : null;
         return success;
     }
 
-    /**
-     * @see #setPathTo(Point, boolean) with {@code bestEffort} sets to {@code true}.
-     */
-    public boolean setPathTo(@Nullable Point position) {
-        return setPathTo(position, true);
-    }
-
     @ApiStatus.Internal
-    public synchronized void tick() {
-        if (pathPosition == null) return; // No path
-        if (entity instanceof LivingEntity && ((LivingEntity) entity).isDead())
-            return; // No pathfinding tick for dead entities
-        if (pathFinder.updatePathFor(pathingEntity) == null) {
-            reset();
+    public synchronized void tick(long tick) {
+        if (goalPosition == null) return; // No path
+        if (entity instanceof LivingEntity && ((LivingEntity) entity).isDead()) return; // No pathfinding tick for dead entities
+        if (path == null) return;
+
+        if (this.entity.getPosition().distance(goalPosition) < minimumDistance) {
+            path.runComplete();
+            path = null;
+
+            return;
+        }
+
+        Point currentTarget = path.getCurrent();
+        float movementSpeed = 0.1f;
+
+        if (currentTarget == null || path.getCurrentType() == PNode.NodeType.REPATH || path.getCurrentType() == null) {
+            path = PathGenerator.generate(entity.getInstance(),
+                    entity.getPosition(),
+                    Pos.fromPoint(goalPosition),
+                    500,
+                    minimumDistance,
+                    entity.getBoundingBox(), null);
+
+            return;
+        }
+
+        if (entity instanceof LivingEntity living) {
+            movementSpeed = living.getAttribute(Attribute.MOVEMENT_SPEED).getBaseValue();
+        }
+
+        moveTowards(currentTarget, movementSpeed);
+
+        if ((path.getCurrentType() == PNode.NodeType.JUMP || currentTarget.y() > entity.getPosition().y() + 0.1) && entity.isOnGround()) {
+            jumpCooldown.refreshLastUpdate(tick);
+            jump(3.5f);
+        }
+
+        // drawPath(path);
+
+        if (entity.getPosition().distance(currentTarget) < 0.75) {
+            // System.out.print(path.getCurrent() + " -> ");
+            path.next();
+            // System.out.println(path.getCurrent());
         }
     }
 
@@ -149,8 +221,8 @@ public final class Navigator {
      *
      * @return the target pathfinder position, null if there is no one
      */
-    public @Nullable Point getPathPosition() {
-        return pathPosition;
+    public @Nullable Point getGoalPosition() {
+        return goalPosition;
     }
 
     public @NotNull Entity getEntity() {
@@ -158,17 +230,45 @@ public final class Navigator {
     }
 
     @ApiStatus.Internal
-    public @NotNull PFPathingEntity getPathingEntity() {
-        return pathingEntity;
+    public void setPathFinder(@Nullable PPath newPath) {
+        this.path = newPath;
     }
 
-    @ApiStatus.Internal
-    public void setPathFinder(@Nullable HydrazinePathFinder pathFinder) {
-        this.pathFinder = pathFinder;
+    public void reset() {
+        this.goalPosition = null;
+        this.path = null;
     }
 
-    private void reset() {
-        this.pathPosition = null;
-        this.pathFinder.reset();
+    public boolean isComplete() {
+        if (this.path == null) return true;
+        return goalPosition == null || entity.getPosition().distance(goalPosition) < 0.5;
+    }
+
+    public Point getNextNode() {
+        if (this.path == null) return null;
+        return this.path.getCurrent();
+    }
+
+    public List<PNode> getNodes() {
+        if (this.path == null) return null;
+        return this.path.getNodes();
+    }
+
+    public Point getPathPosition() {
+        return goalPosition;
+    }
+
+    /**
+     * Visualise path for debugging
+     * @param path the path to draw
+     */
+    private void drawPath(PPath path) {
+        if (path == null) return;
+
+        for (PNode point : path.getNodes()) {
+            Point pos = point.point();
+            var packet = ParticleCreator.createParticlePacket(Particle.COMPOSTER, pos.x(), pos.y() + 0.5, pos.z(), 0, 0, 0, 1);
+            entity.sendPacketToViewers(packet);
+        }
     }
 }
