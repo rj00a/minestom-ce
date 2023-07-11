@@ -70,24 +70,26 @@ public class PNode {
             for (int z = -stepSize; z <= stepSize; ++z) {
                 if (x == 0 && z == 0) continue;
 
-                double cost =  x * x + z * z;
+                double cost =  Math.sqrt(x * x + z * z);
 
-                Pos floorPoint = gravitySnap(instance, point.withX(point.blockX() + 0.5 + x).withZ(point.blockZ() + 0.5 + z), boundingBox, 10);
-                Pos jumpPoint = gravitySnap(instance, point.withX(point.blockX() + 0.5 + x).withZ(point.blockZ() + 0.5 + z).add(0, 1, 0), boundingBox, 10);
+                Pos floorPoint = point.withX(point.blockX() + 0.5 + x).withZ(point.blockZ() + 0.5 + z);
+                Pos jumpPoint = point.withX(point.blockX() + 0.5 + x).withZ(point.blockZ() + 0.5 + z).add(0, 1, 0);
+
+                floorPoint = gravitySnap(instance, floorPoint, boundingBox, 100);
+                jumpPoint = gravitySnap(instance, jumpPoint, boundingBox, 100);
 
                 if (floorPoint == null) continue;
-                if (jumpPoint == null) continue;
 
                 var nodeWalk = createWalk(instance, floorPoint, boundingBox, cost, point, goal);
                 if (nodeWalk != null && !closed.contains(nodeWalk)) nearby.add(nodeWalk);
 
+                if (jumpPoint == null) continue;
                 if (!floorPoint.sameBlock(jumpPoint)) {
-                    var nodeJump = createJump(instance, jumpPoint, boundingBox, cost + 5, point, goal);
+                    var nodeJump = createJump(instance, jumpPoint, boundingBox, cost, point, goal);
                     if (nodeJump != null && !closed.contains(nodeJump)) nearby.add(nodeJump);
                 }
             }
         }
-
 
         return nearby;
     }
@@ -149,12 +151,22 @@ public class PNode {
         return new PNode(point, g+cost, PathGenerator.heuristic(point, goal), this);
     }
 
-    static Pos gravitySnap(Instance instance, Point point, BoundingBox boundingBox, int maxFall) {
+    static Pos gravitySnap(Instance instance, Point point, BoundingBox boundingBox, double maxFall) {
         Chunk c = instance.getChunkAt(point);
         if (c == null) return null;
 
-        PhysicsResult res = CollisionUtils.handlePhysics(instance, c, boundingBox, Pos.fromPoint(point), new Vec(0, -maxFall, 0), null, true);
-        return res.newPosition();
+        for (int axis = 1; axis <= maxFall; ++axis) {
+            var iterator = boundingBox.getBlocks(point, BoundingBox.AxisMask.Y, -axis);
+
+            while (iterator.hasNext()) {
+                var block = iterator.next();
+                if (instance.getBlock(block, Block.Getter.Condition.TYPE).isSolid()) {
+                    return Pos.fromPoint(point.withY(point.y() - axis + 1));
+                }
+            }
+        }
+
+        return Pos.fromPoint(point.withY(point.y() - maxFall));
     }
 
     private static boolean canMoveTowards(Instance instance, Pos start, Point end, BoundingBox boundingBox) {

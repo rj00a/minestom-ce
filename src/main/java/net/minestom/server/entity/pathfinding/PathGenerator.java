@@ -1,9 +1,13 @@
 package net.minestom.server.entity.pathfinding;
 
+import net.minestom.server.MinecraftServer;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.instance.Instance;
+import net.minestom.server.instance.block.Block;
+import net.minestom.server.particle.Particle;
+import net.minestom.server.particle.ParticleCreator;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -14,19 +18,21 @@ public class PathGenerator {
     }
 
     static Comparator<PNode> pNodeComparator = (s1, s2) -> (int) (((s1.g + s1.h) - (s2.g + s2.h)) * 1000);
-    public static PPath generate(Instance instance, Pos orgStart, Point orgTarget, double maxDistance, double closeDistance, BoundingBox boundingBox, Consumer<Void> onComplete) {
-        Pos start = PNode.gravitySnap(instance, orgStart, boundingBox, 20);
-        Pos target = PNode.gravitySnap(instance, orgTarget, boundingBox, 20);
+    public static PPath generate(Instance instance, Pos orgStart, Point orgTarget, double closeDistance, double maxDistance, double pathSegmentCost, BoundingBox boundingBox, Consumer<Void> onComplete) {
+        closeDistance = Math.max(0.8, closeDistance);
 
-        Point closestFound = null;
+        Pos start = PNode.gravitySnap(instance, orgStart, boundingBox, 100);
+        Pos target = PNode.gravitySnap(instance, orgTarget, boundingBox, 100);
+
+        List<PNode> closestFoundNodes = List.of();
         double closestDistance = Double.MAX_VALUE;
 
         if (start == null || target == null) return null;
 
-        PPath path = new PPath(start, instance, boundingBox, onComplete);
+        PPath path = new PPath(start, instance, boundingBox, maxDistance, pathSegmentCost, onComplete);
         Set<PNode> closed = new HashSet<>();
 
-        int maxSize = (int) Math.floor(maxDistance * 7);
+        int maxSize = (int) Math.floor(maxDistance * maxDistance);
         PNode pStart = new PNode(start, 0, heuristic(start, target), null);
 
         TreeSet<PNode> open = new TreeSet<>(pNodeComparator);
@@ -41,10 +47,13 @@ public class PathGenerator {
 
             if (current.h < closestDistance) {
                 closestDistance = current.h;
-                closestFound = current.point;
+                closestFoundNodes = List.of(current);
             }
 
-            if (current.g > 20) break;
+            // if ((current.g) > pathSegmentCost) break;
+
+            var packet = ParticleCreator.createParticlePacket(Particle.FLAME, current.point.x(), current.point.y(), current.point.z(), 0, 0, 0, 0);
+            MinecraftServer.getConnectionManager().getOnlinePlayers().forEach(p -> p.sendPacket(packet));
 
             current.getNearby(instance, closed, target, boundingBox).forEach(p -> {
                 if (p.point.distance(target) <= maxDistance) {
@@ -56,18 +65,12 @@ public class PathGenerator {
 
         PNode current = open.pollFirst();
 
-        if (current == null || open.isEmpty() || current.point.distance(target) > closeDistance) {
-            if (closestFound == null) return null;
+        if (open.isEmpty()) return null;
 
-            path = PathGenerator.generate(instance, orgStart, Pos.fromPoint(closestFound), maxDistance, closeDistance, boundingBox, onComplete);
-            if (path == null) return null;
-
-            var pathNodes = path.getNodes();
-            var newNode = new PNode(Pos.fromPoint(closestFound), 0, 0, pathNodes.get(pathNodes.size() - 1));
-            newNode.setType(PNode.NodeType.REPATH);
-            pathNodes.add(newNode);
-
-            return path;
+        if (current == null || !withinDistance(current.point, target, closeDistance)) {
+            if (closestFoundNodes.size() == 0) return null;
+            current = closestFoundNodes.get(closestFoundNodes.size() - 1);
+            current.setType(PNode.NodeType.REPATH);
         }
 
         while (current.parent != null) {
@@ -77,19 +80,18 @@ public class PathGenerator {
 
         Collections.reverse(path.getNodes());
 
-        if (path.getNodes().size() > 0) {
+        if (withinDistance(current.point, target, closeDistance)) {
             PNode pEnd = new PNode(target, 0, 0, path.getNodes().get(path.getNodes().size() - 1));
             path.getNodes().add(pEnd);
         }
 
         path.fixJumps();
-        // System.out.println(path);
 
         return path;
     }
 
     private static boolean withinDistance(Pos point, Pos target, double closeDistance) {
-        return point.distanceSquared(target) < closeDistance;
+        return point.distanceSquared(target) < (closeDistance * closeDistance);
 
     }
 }

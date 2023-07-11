@@ -10,11 +10,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-class PPath {
+public class PPath {
     private final Consumer<Void> onComplete;
     private final BoundingBox boundingBox;
     private final Instance instance;
     private final List<PNode> nodes = new ArrayList<>();
+    private final double pathSegmentCost;
+    private final double maxDistance;
     private int index = 0;
     private final Pos initialPosition;
 
@@ -22,11 +24,13 @@ class PPath {
         return nodes;
     }
 
-    public PPath(Pos point, Instance instance, BoundingBox boundingBox, Consumer<Void> onComplete) {
+    public PPath(Pos point, Instance instance, BoundingBox boundingBox, double maxDistance, double pathSegmentCost, Consumer<Void> onComplete) {
         this.onComplete = onComplete;
         this.initialPosition = point;
         this.instance = instance;
         this.boundingBox = boundingBox;
+        this.maxDistance = maxDistance;
+        this.pathSegmentCost = pathSegmentCost;
     }
 
     void runComplete() {
@@ -70,5 +74,13 @@ class PPath {
                 i++;
             }
         }
+    }
+
+    double maxDistance() {
+        return maxDistance;
+    }
+
+    double pathSegmentCost() {
+        return pathSegmentCost;
     }
 }

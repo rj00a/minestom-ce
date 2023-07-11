@@ -98,14 +98,12 @@ public final class Navigator {
 
     public synchronized boolean setPathTo(@Nullable Point point) {
         BoundingBox bb = this.entity.getBoundingBox();
-        double centerToCorner = Math.sqrt(bb.width() * bb.width() + bb.depth() * bb.depth()) / 2 * 1.2;
+        double centerToCorner = Math.sqrt(bb.width() * bb.width() + bb.depth() * bb.depth()) / 2;
         return setPathTo(point, centerToCorner, null);
     }
 
-    public synchronized boolean setPathTo(@Nullable Pos point) {
-        BoundingBox bb = this.entity.getBoundingBox();
-        double centerToCorner = Math.sqrt(bb.width() * bb.width() + bb.depth() * bb.depth()) / 2 * 1.2;
-        return setPathTo(point, centerToCorner, null);
+    public synchronized boolean setPathTo(@Nullable Point point, double minimumDistance, Consumer<Void> onComplete) {
+        return setPathTo(point, minimumDistance, 500, 20, onComplete);
     }
 
     /**
@@ -116,13 +114,12 @@ public final class Navigator {
      * @param onComplete     called when the path has been completed
      * @return true if a path has been found
      */
-    public synchronized boolean setPathTo(@Nullable Point point, double minimumDistance, Consumer<Void> onComplete) {
-        minimumDistance = Math.max(minimumDistance, 0.8);
-
+    public synchronized boolean setPathTo(@Nullable Point point, double minimumDistance, double maxDistance, double pathSegmentCost, Consumer<Void> onComplete) {
         if (point != null && goalPosition != null && point.samePoint(goalPosition) && this.path != null) {
             // Tried to set path to the same target position
             return false;
         }
+
         final Instance instance = entity.getInstance();
         if (point == null) {
             this.path = null;
@@ -160,8 +157,8 @@ public final class Navigator {
         this.path = PathGenerator.generate(instance,
                 this.entity.getPosition(),
                 point,
-                500,
-                minimumDistance,
+                minimumDistance, maxDistance,
+                pathSegmentCost,
                 this.entity.getBoundingBox(), onComplete);
 
         final boolean success = path != null;
@@ -189,9 +186,8 @@ public final class Navigator {
             path = PathGenerator.generate(entity.getInstance(),
                     entity.getPosition(),
                     Pos.fromPoint(goalPosition),
-                    500,
-                    minimumDistance,
-                    entity.getBoundingBox(), null);
+                    minimumDistance, path.maxDistance(),
+                    path.pathSegmentCost(), entity.getBoundingBox(), null);
 
             return;
         }
@@ -209,11 +205,7 @@ public final class Navigator {
 
         drawPath(path);
 
-        if (entity.getPosition().distance(currentTarget) < 0.75) {
-            // System.out.print(path.getCurrent() + " -> ");
-            path.next();
-            // System.out.println(path.getCurrent());
-        }
+        if (entity.getPosition().distance(currentTarget) < 0.65) path.next();
     }
 
     /**
@@ -229,11 +221,6 @@ public final class Navigator {
         return entity;
     }
 
-    @ApiStatus.Internal
-    public void setPathFinder(@Nullable PPath newPath) {
-        this.path = newPath;
-    }
-
     public void reset() {
         this.goalPosition = null;
         this.path = null;
@@ -241,12 +228,7 @@ public final class Navigator {
 
     public boolean isComplete() {
         if (this.path == null) return true;
-        return goalPosition == null || entity.getPosition().distance(goalPosition) < 0.5;
-    }
-
-    public Point getNextNode() {
-        if (this.path == null) return null;
-        return this.path.getCurrent();
+        return goalPosition == null || entity.getPosition().distance(goalPosition) < 0.65;
     }
 
     public List<PNode> getNodes() {
