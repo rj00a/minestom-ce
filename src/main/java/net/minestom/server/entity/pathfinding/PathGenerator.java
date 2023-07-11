@@ -69,15 +69,9 @@ public class PathGenerator {
 
         PNode current = open.pollFirst();
 
-        System.out.println(closestDistance);
-
-        System.out.println(closestFoundNodes);
-        if (open.isEmpty()) return null;
-
-        if (current == null || !withinDistance(current.point, target, closeDistance)) {
+        if (current == null || open.isEmpty() || !withinDistance(current.point, target, closeDistance)) {
             if (closestFoundNodes.size() == 0) return null;
             current = closestFoundNodes.get(closestFoundNodes.size() - 1);
-            current.setType(PNode.NodeType.REPATH);
         }
 
         while (current.parent != null) {
@@ -87,10 +81,8 @@ public class PathGenerator {
 
         Collections.reverse(path.getNodes());
 
-        if (withinDistance(current.point, target, closeDistance)) {
-            PNode pEnd = new PNode(target, 0, 0, path.getNodes().get(path.getNodes().size() - 1));
-            path.getNodes().add(pEnd);
-        }
+        PNode pEnd = new PNode(target, 0, 0, null);
+        path.getNodes().add(pEnd);
 
         path.fixJumps();
 

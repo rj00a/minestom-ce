@@ -70,7 +70,7 @@ public class PNode {
             for (int z = -stepSize; z <= stepSize; ++z) {
                 if (x == 0 && z == 0) continue;
 
-                double cost =  Math.sqrt(x * x + z * z);
+                double cost =  Math.sqrt(x * x + z * z) / 2;
 
                 Pos floorPoint = point.withX(point.blockX() + 0.5 + x).withZ(point.blockZ() + 0.5 + z);
                 Pos jumpPoint = point.withX(point.blockX() + 0.5 + x).withZ(point.blockZ() + 0.5 + z).add(0, 1, 0);
@@ -85,7 +85,7 @@ public class PNode {
 
                 if (jumpPoint == null) continue;
                 if (!floorPoint.sameBlock(jumpPoint)) {
-                    var nodeJump = createJump(instance, jumpPoint, boundingBox, cost + 1, point, goal);
+                    var nodeJump = createJump(instance, jumpPoint, boundingBox, cost, point, goal);
                     if (nodeJump != null && !closed.contains(nodeJump)) nearby.add(nodeJump);
                 }
             }
@@ -102,9 +102,7 @@ public class PNode {
             n.setType(NodeType.FALL);
 
             if (!canMoveTowards(instance, start, point.withY(start.y()), boundingBox)) return null;
-            if (pointInvalid(instance, point.withY(start.y()), boundingBox)) {
-                return null;
-            }
+            if (pointInvalid(instance, point.withY(start.y()), boundingBox)) return null;
         } else {
             if (!canMoveTowards(instance, start, point, boundingBox)) return null;
         }
