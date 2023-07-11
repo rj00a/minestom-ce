@@ -10,12 +10,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class PPath {
+class PPath {
     private final Consumer<Void> onComplete;
     private final BoundingBox boundingBox;
     private final Instance instance;
-    List<PNode> nodes = new ArrayList<>();
-    int index = 0;
+    private final List<PNode> nodes = new ArrayList<>();
+    private int index = 0;
     private final Pos initialPosition;
 
     public List<PNode> getNodes() {
@@ -29,7 +29,7 @@ public class PPath {
         this.boundingBox = boundingBox;
     }
 
-    public void runComplete() {
+    void runComplete() {
         if (onComplete != null) onComplete.accept(null);
     }
 
@@ -38,25 +38,25 @@ public class PPath {
         return nodes.toString();
     }
 
-    public PNode.NodeType getCurrentType() {
+    PNode.NodeType getCurrentType() {
         if (index >= nodes.size()) return null;
         var current = nodes.get(index);
         return current.getType();
     }
 
     @Nullable
-    public Point getCurrent() {
+    Point getCurrent() {
         if (index >= nodes.size()) return null;
         var current = nodes.get(index);
         return current.point;
     }
 
-    public void next() {
+    void next() {
         if (index >= nodes.size()) return;
         index++;
     }
 
-    public void fixJumps() {
+    void fixJumps() {
         for (int i = 0; i < nodes.size(); i++) {
             var node = nodes.get(i);
 

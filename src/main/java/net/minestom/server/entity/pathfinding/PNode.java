@@ -16,27 +16,27 @@ import java.util.Collection;
 import java.util.Set;
 
 public class PNode {
-    public final double g;
-    public final double h;
-    public final PNode parent;
-    final Pos point;
-    final int hashCode;
-
-    private NodeType type = NodeType.WALK;
-
-    public void setType(NodeType newType) {
-        this.type = newType;
-    }
-
-    public NodeType getType() {
-        return type;
-    }
-
     public enum NodeType {
         WALK,
         JUMP,
         FALL,
         REPATH
+    }
+
+    final double g;
+    final double h;
+    final PNode parent;
+    final Pos point;
+    final int hashCode;
+
+    private NodeType type = NodeType.WALK;
+
+    void setType(NodeType newType) {
+        this.type = newType;
+    }
+
+    public NodeType getType() {
+        return type;
     }
 
     public PNode(Pos point, double g, double h, PNode parent) {
@@ -147,7 +147,7 @@ public class PNode {
         return new PNode(point, g+cost, PathGenerator.heuristic(point, goal), this);
     }
 
-    public static Pos gravitySnap(Instance instance, Point point, BoundingBox boundingBox, int maxFall) {
+    static Pos gravitySnap(Instance instance, Point point, BoundingBox boundingBox, int maxFall) {
         Chunk c = instance.getChunkAt(point);
         if (c == null) return null;
 
@@ -161,7 +161,7 @@ public class PNode {
         return res.newPosition().distanceSquared(end) < 0.01;
     }
 
-    public static Pos moveTowards(Instance instance, Pos start, Point end, BoundingBox boundingBox) {
+    static Pos moveTowards(Instance instance, Pos start, Point end, BoundingBox boundingBox) {
         Point diff = end.sub(start);
         PhysicsResult res = CollisionUtils.handlePhysics(instance, instance.getChunkAt(start), boundingBox, start, Vec.fromPoint(diff), null, false);
         return res.newPosition();
