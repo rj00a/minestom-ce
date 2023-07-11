@@ -148,12 +148,12 @@ public final class Navigator {
 
         this.minimumDistance = minimumDistance;
         if (this.entity.getPosition().distance(point) < minimumDistance) {
-            onComplete.accept(null);
+            if (onComplete != null) onComplete.accept(null);
             return false;
         }
 
         if (goalPosition != null && point.distance(goalPosition) < 1) {
-            onComplete.accept(null);
+            if (onComplete != null) onComplete.accept(null);
             return false;
         }
 
@@ -202,12 +202,12 @@ public final class Navigator {
 
         moveTowards(currentTarget, movementSpeed);
 
-        if ((path.getCurrentType() == PNode.NodeType.JUMP || currentTarget.y() > entity.getPosition().y() + 0.1) && entity.isOnGround()) {
+        if ((path.getCurrentType() == PNode.NodeType.JUMP || currentTarget.y() > entity.getPosition().y() + 0.1) && jumpCooldown.isReady(tick)) {
             jumpCooldown.refreshLastUpdate(tick);
             jump(3.5f);
         }
 
-        // drawPath(path);
+        drawPath(path);
 
         if (entity.getPosition().distance(currentTarget) < 0.75) {
             // System.out.print(path.getCurrent() + " -> ");

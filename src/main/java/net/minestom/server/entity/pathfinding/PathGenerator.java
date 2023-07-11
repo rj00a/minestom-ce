@@ -15,8 +15,8 @@ public class PathGenerator {
 
     static Comparator<PNode> pNodeComparator = (s1, s2) -> (int) (((s1.g + s1.h) - (s2.g + s2.h)) * 1000);
     public static PPath generate(Instance instance, Pos orgStart, Point orgTarget, double maxDistance, double closeDistance, BoundingBox boundingBox, Consumer<Void> onComplete) {
-        Pos start = PNode.gravitySnap(instance, orgStart, boundingBox, 100);
-        Pos target = PNode.gravitySnap(instance, orgTarget, boundingBox, 100);
+        Pos start = PNode.gravitySnap(instance, orgStart, boundingBox, 20);
+        Pos target = PNode.gravitySnap(instance, orgTarget, boundingBox, 20);
 
         Point closestFound = null;
         double closestDistance = Double.MAX_VALUE;

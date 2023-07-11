@@ -79,10 +79,12 @@ public class PNode {
                 if (jumpPoint == null) continue;
 
                 var nodeWalk = createWalk(instance, floorPoint, boundingBox, cost, point, goal);
-                var nodeJump = createJump(instance, jumpPoint, boundingBox, cost + 5, point, goal);
-
                 if (nodeWalk != null && !closed.contains(nodeWalk)) nearby.add(nodeWalk);
-                if (nodeJump != null && !closed.contains(nodeJump)) nearby.add(nodeJump);
+
+                if (!floorPoint.sameBlock(jumpPoint)) {
+                    var nodeJump = createJump(instance, jumpPoint, boundingBox, cost + 5, point, goal);
+                    if (nodeJump != null && !closed.contains(nodeJump)) nearby.add(nodeJump);
+                }
             }
         }
 
