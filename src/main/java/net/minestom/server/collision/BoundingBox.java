@@ -181,12 +181,13 @@ public final class BoundingBox implements Shape {
         private double minX, minY, minZ, maxX, maxY, maxZ;
 
         public PointIterator(BoundingBox boundingBox, Point p, AxisMask axisMask, double axis) {
-            minX = boundingBox.minX() + p.x();
-            minY = boundingBox.minY() + p.y();
-            minZ = boundingBox.minZ() + p.z();
-            maxX = boundingBox.maxX() + p.x();
-            maxY = boundingBox.maxY() + p.y();
-            maxZ = boundingBox.maxZ() + p.z();
+            minX = (int) Math.floor(boundingBox.minX() + p.x());
+            minY = (int) Math.floor(boundingBox.minY() + p.y());
+            minZ = (int) Math.floor(boundingBox.minZ() + p.z());
+            maxX = (int) Math.floor(boundingBox.maxX() + p.x());
+            maxY = (int) Math.floor(boundingBox.maxY() + p.y());
+            maxZ = (int) Math.floor(boundingBox.maxZ() + p.z());
+
             x = minX;
             y = minY;
             z = minZ;
@@ -208,7 +209,7 @@ public final class BoundingBox implements Shape {
 
         @Override
         public boolean hasNext() {
-            return x <= maxX && y <= maxY && z < maxZ;
+            return x <= maxX && y <= maxY && z <= maxZ;
         }
 
         @Override
@@ -216,10 +217,10 @@ public final class BoundingBox implements Shape {
             var res = new Vec(x, y, z);
 
             x++;
-            if (x >= maxX) {
+            if (x > maxX) {
                 x = minX;
                 y++;
-                if (y >= maxY) {
+                if (y > maxY) {
                     y = minY;
                     z++;
                 }

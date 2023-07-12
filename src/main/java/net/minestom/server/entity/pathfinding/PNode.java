@@ -70,7 +70,7 @@ public class PNode {
             for (int z = -stepSize; z <= stepSize; ++z) {
                 if (x == 0 && z == 0) continue;
 
-                double cost =  Math.sqrt(x * x + z * z) / 2;
+                double cost = Math.sqrt(x * x + z * z) / 2;
 
                 Pos floorPoint = point.withX(point.blockX() + 0.5 + x).withZ(point.blockZ() + 0.5 + z);
                 Pos jumpPoint = point.withX(point.blockX() + 0.5 + x).withZ(point.blockZ() + 0.5 + z).add(0, 1, 0);
@@ -159,7 +159,7 @@ public class PNode {
             while (iterator.hasNext()) {
                 var block = iterator.next();
                 if (instance.getBlock(block, Block.Getter.Condition.TYPE).isSolid()) {
-                    return Pos.fromPoint(point.withY(point.y() - axis + 1));
+                    return Pos.fromPoint(point.withY(Math.floor(point.y() - axis + 1)));
                 }
             }
         }

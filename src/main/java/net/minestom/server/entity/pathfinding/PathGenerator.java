@@ -23,18 +23,19 @@ public class PathGenerator {
         long time = System.currentTimeMillis();
 
         Pos start = PNode.gravitySnap(instance, orgStart, boundingBox, 100);
-        Pos target = PNode.gravitySnap(instance, orgTarget, boundingBox, 100);
+        Pos target = PNode.gravitySnap(instance, orgTarget, boundingBox, 100).withX(orgTarget.blockX() + 0.5).withZ(orgTarget.blockZ() + 0.5);
 
         List<PNode> closestFoundNodes = List.of();
         double closestDistance = Double.MAX_VALUE;
 
         if (start == null || target == null) return null;
+
         double straightDistance = heuristic(start, target);
 
         PPath path = new PPath(start, instance, boundingBox, maxDistance, pathVariance, onComplete);
         Set<PNode> closed = new HashSet<>();
 
-        int maxSize = (int) Math.floor(maxDistance * 8);
+        int maxSize = (int) Math.floor(maxDistance * 5);
         PNode pStart = new PNode(start, 0, heuristic(start, target), null);
 
         TreeSet<PNode> open = new TreeSet<>(pNodeComparator);
@@ -48,7 +49,7 @@ public class PathGenerator {
             if (!chunk.isLoaded()) continue;
 
             if (((current.g + current.h) - straightDistance) > pathVariance) continue;
-            if (!withinDistance(current.point, start, maxDistance)) break;
+            if (!withinDistance(current.point, start, maxDistance)) continue;
             if (withinDistance(current.point, target, closeDistance)) break;
 
             if (current.h < closestDistance) {
@@ -67,6 +68,8 @@ public class PathGenerator {
             });
         }
 
+        System.out.println(closed.size());
+
         PNode current = open.pollFirst();
 
         if (current == null || open.isEmpty() || !withinDistance(current.point, target, closeDistance)) {
@@ -84,7 +87,7 @@ public class PathGenerator {
         PNode pEnd = new PNode(target, 0, 0, null);
         path.getNodes().add(pEnd);
 
-        path.fixJumps();
+        // path.fixJumps();
 
         long e = System.currentTimeMillis();
 
