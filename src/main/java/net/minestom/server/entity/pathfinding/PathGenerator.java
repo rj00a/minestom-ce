@@ -1,12 +1,9 @@
 package net.minestom.server.entity.pathfinding;
 
-import net.minestom.server.MinecraftServer;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.instance.Instance;
-import net.minestom.server.particle.Particle;
-import net.minestom.server.particle.ParticleCreator;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -20,10 +17,8 @@ public class PathGenerator {
     public static PPath generate(Instance instance, Pos orgStart, Point orgTarget, double closeDistance, double maxDistance, double pathVariance, BoundingBox boundingBox, Consumer<Void> onComplete) {
         closeDistance = Math.max(0.8, closeDistance);
 
-        long time = System.currentTimeMillis();
-
         Pos start = PNode.gravitySnap(instance, orgStart, boundingBox, 100);
-        Pos target = PNode.gravitySnap(instance, orgTarget, boundingBox, 100).withX(orgTarget.blockX() + 0.5).withZ(orgTarget.blockZ() + 0.5);
+        Pos target = PNode.gravitySnap(instance, orgTarget.withX(orgTarget.blockX() + 0.5).withZ(orgTarget.blockZ() + 0.5), boundingBox, 100);
 
         List<PNode> closestFoundNodes = List.of();
         double closestDistance = Double.MAX_VALUE;
@@ -57,9 +52,6 @@ public class PathGenerator {
                 closestFoundNodes = List.of(current);
             }
 
-            var packet = ParticleCreator.createParticlePacket(Particle.FLAME, current.point.x(), current.point.y(), current.point.z(), 0, 0, 0, 0);
-            MinecraftServer.getConnectionManager().getOnlinePlayers().forEach(p -> p.sendPacket(packet));
-
             current.getNearby(instance, closed, target, boundingBox).forEach(p -> {
                 if (p.point.distance(start) <= maxDistance) {
                     open.add(p);
@@ -67,8 +59,6 @@ public class PathGenerator {
                 }
             });
         }
-
-        System.out.println(closed.size());
 
         PNode current = open.pollFirst();
 
@@ -86,15 +76,6 @@ public class PathGenerator {
 
         PNode pEnd = new PNode(target, 0, 0, null);
         path.getNodes().add(pEnd);
-
-        // path.fixJumps();
-
-        long e = System.currentTimeMillis();
-
-        PNode finalCurrent = current;
-        MinecraftServer.getConnectionManager().getOnlinePlayers().forEach(p -> {
-            p.sendMessage("Found path in " + (e - time) + "ms | Path cost is " + (finalCurrent.g + finalCurrent.h));
-        });
 
         return path;
     }

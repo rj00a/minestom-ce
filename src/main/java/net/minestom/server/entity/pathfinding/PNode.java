@@ -70,7 +70,7 @@ public class PNode {
             for (int z = -stepSize; z <= stepSize; ++z) {
                 if (x == 0 && z == 0) continue;
 
-                double cost = Math.sqrt(x * x + z * z) / 2;
+                double cost = Math.sqrt(x * x + z * z) * 0.98;
 
                 Pos floorPoint = point.withX(point.blockX() + 0.5 + x).withZ(point.blockZ() + 0.5 + z);
                 Pos jumpPoint = point.withX(point.blockX() + 0.5 + x).withZ(point.blockZ() + 0.5 + z).add(0, 1, 0);
