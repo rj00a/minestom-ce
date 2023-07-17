@@ -54,7 +54,10 @@ public class BlockIterator implements Iterator<Point> {
      */
     public BlockIterator(@NotNull Vec start, @NotNull Vec direction, double yOffset, double maxDistance, boolean smooth) {
         start = start.add(0, yOffset, 0);
-        end = start.add(direction.normalize().mul(maxDistance));
+
+        if (maxDistance != 0) end = start.add(direction.normalize().mul(maxDistance));
+        else end = null;
+        
         if (direction.isZero()) this.foundEnd = true;
 
         this.smooth = smooth;
@@ -204,12 +207,12 @@ public class BlockIterator implements Iterator<Point> {
         if (foundEnd) throw new NoSuchElementException();
         if (!extraPoints.isEmpty()) {
             var res = extraPoints.poll();
-            if (res.sameBlock(end)) foundEnd = true;
+            if (end != null && res.sameBlock(end)) foundEnd = true;
             return res;
         }
 
         var current = new Vec(mapX, mapY, mapZ);
-        if (current.sameBlock(end)) foundEnd = true;
+        if (end != null && current.sameBlock(end)) foundEnd = true;
 
         double closest = Math.min(sideDistX, Math.min(sideDistY, sideDistZ));
         boolean needsX = sideDistX - closest < 1e-10;

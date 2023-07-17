@@ -81,6 +81,26 @@ public class PathfinderIntegrationTest {
     }
 
     @Test
+    public void testShort(Env env) {
+        var i = env.createFlatInstance();
+        i.getWorldBorder().setCenter(0, 0);
+        i.getWorldBorder().setDiameter(10000);
+
+        ChunkUtils.forChunksInRange(0, 0, 10, (x, z) -> {
+            i.loadChunk(x, z).join();
+        });
+
+        var zombie = new LivingEntity(EntityType.ZOMBIE);
+        zombie.setInstance(i, new Pos(0, 40, 0));
+
+        Navigator nav = new Navigator(zombie);
+        nav.setPathTo(new Pos(2, 40, 2));
+
+        assert(nav.getNodes() != null);
+        validateNodes(nav.getNodes(), i);
+    }
+
+    @Test
     public void testPFNodeEqual(Env env) {
         PNode node1 = new PNode(new Pos(0.777, 0, 0), 2, 0, null);
         PNode node2 = new PNode(new Pos(0.777, 0, 0), 0, 3, node1);

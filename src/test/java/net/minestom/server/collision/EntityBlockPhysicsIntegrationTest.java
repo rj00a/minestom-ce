@@ -1,5 +1,6 @@
 package net.minestom.server.collision;
 
+import net.minestom.server.utils.block.BlockIterator;
 import net.minestom.testing.Env;
 import net.minestom.testing.EnvTest;
 import net.minestom.server.coordinate.Point;
@@ -11,6 +12,8 @@ import net.minestom.server.entity.metadata.other.SlimeMeta;
 import net.minestom.server.instance.block.Block;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -335,7 +338,9 @@ public class EntityBlockPhysicsIntegrationTest {
         entity.setInstance(instance, new Pos(-0.3, 42, -0.3)).join();
         assertEquals(instance, entity.getInstance());
 
-        PhysicsResult res = CollisionUtils.handlePhysics(entity, new Vec(10, 0, -10));
+        PhysicsResult res = CollisionUtils.handlePhysics(entity, new Vec(0, 0, -10));
+
+        System.out.println(res.newPosition());
 
         assertEqualsPoint(new Pos(4.7, 42, -10.3), res.newPosition());
     }
@@ -630,6 +635,13 @@ public class EntityBlockPhysicsIntegrationTest {
 
         PhysicsResult res = CollisionUtils.handlePhysics(entity, new Vec(0.3, 0, 0));
         assertEqualsPoint(new Pos(0.7, 42, 0), res.newPosition());
+    }
+
+    @Test
+    public void tmp(Env env) {
+        BoundingBox boundingBox = new BoundingBox(3,2.8,3);
+        Vec velocity = new Vec(1,3,5);
+        Pos entityPosition = new Pos(0,0,0);
     }
 
     // Checks C include all checks for crossing one intermediate block (3 block checks)

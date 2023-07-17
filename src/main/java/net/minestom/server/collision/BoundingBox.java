@@ -177,6 +177,7 @@ public final class BoundingBox implements Shape {
     }
 
     static class PointIterator implements Iterator<Point> {
+        private final double sx, sy, sz;
         double x, y, z;
         private double minX, minY, minZ, maxX, maxY, maxZ;
 
@@ -191,6 +192,10 @@ public final class BoundingBox implements Shape {
             x = minX;
             y = minY;
             z = minZ;
+
+            sx = boundingBox.minX() + p.x() - minX;
+            sy = boundingBox.minY() + p.y() - minY;
+            sz = boundingBox.minZ() + p.z() - minZ;
 
             if (axisMask == AxisMask.X) {
                 x = axis + p.x();
@@ -214,7 +219,7 @@ public final class BoundingBox implements Shape {
 
         @Override
         public Point next() {
-            var res = new Vec(x, y, z);
+            var res = new Vec(x + sx, y + sy, z + sz);
 
             x++;
             if (x > maxX) {

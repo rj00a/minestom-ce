@@ -69,14 +69,13 @@ public class PNode {
         for (int x = -stepSize; x <= stepSize; ++x) {
             for (int z = -stepSize; z <= stepSize; ++z) {
                 if (x == 0 && z == 0) continue;
-
                 double cost = Math.sqrt(x * x + z * z) * 0.98;
 
                 Pos floorPoint = point.withX(point.blockX() + 0.5 + x).withZ(point.blockZ() + 0.5 + z);
                 Pos jumpPoint = point.withX(point.blockX() + 0.5 + x).withZ(point.blockZ() + 0.5 + z).add(0, 1, 0);
 
-                floorPoint = gravitySnap(instance, floorPoint, boundingBox, 100);
-                jumpPoint = gravitySnap(instance, jumpPoint, boundingBox, 100);
+                floorPoint = gravitySnap(instance, floorPoint, boundingBox, 20);
+                jumpPoint = gravitySnap(instance, jumpPoint, boundingBox, 20);
 
                 if (floorPoint == null) continue;
 

@@ -185,7 +185,7 @@ public final class Navigator {
             jump(3.5f);
         }
 
-        drawPath(path);
+        // drawPath(path);
 
         if (entity.getPosition().sameBlock(currentTarget)) path.next();
     }
