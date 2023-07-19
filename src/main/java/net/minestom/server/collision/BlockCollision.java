@@ -240,13 +240,12 @@ public final class BlockCollision {
         private final Pos[] corners;
         private final BoundingBox.AxisMask axis;
         private final BlockIterator i1, i2;
-        private final boolean ignoreBorderX, ignoreBorderY;
 
         private Point i1p, i2p;
         private int currentBlock;
         private int endBlock;
 
-        public BoundingBoxFace(Pos[] corners, Pos start, Vec velocity, BoundingBox.AxisMask axis, boolean ignoreBorderX, boolean ignoreBorderY) {
+        public BoundingBoxFace(Pos[] corners, Pos start, Vec velocity, BoundingBox.AxisMask axis) {
             this.corners = corners;
 
             this.axis = axis;
@@ -254,20 +253,17 @@ public final class BlockCollision {
 
             if (axis == BoundingBox.AxisMask.X) {
                 currentBlock = (int) Math.floor(corners[0].blockX());
-                endBlock = (int) Math.ceil(currentBlock + velocity.x()) + getAxisBlock(direction) * 2;
+                endBlock = (int) Math.floor(currentBlock + velocity.x()) + getAxisBlock(direction) * 2;
             } else if (axis == BoundingBox.AxisMask.Y) {
                 currentBlock = (int) Math.floor(corners[0].blockY());
-                endBlock = (int) Math.ceil(currentBlock + velocity.y()) + getAxisBlock(direction) * 2;
+                endBlock = (int) Math.floor(currentBlock + velocity.y()) + getAxisBlock(direction) * 2;
             } else if (axis == BoundingBox.AxisMask.Z) {
                 currentBlock = (int) Math.floor(corners[0].blockZ());
-                endBlock = (int) Math.ceil(currentBlock + velocity.z()) + getAxisBlock(direction) * 2;
+                endBlock = (int) Math.floor(currentBlock + velocity.z()) + getAxisBlock(direction) * 2;
             }
 
-            i1 = new BlockIterator(corners[0].asVec(), velocity, 0, 0, false);
-            i2 = new BlockIterator(corners[1].asVec(), velocity, 0, 0, false);
-
-            this.ignoreBorderX = ignoreBorderX;
-            this.ignoreBorderY = ignoreBorderY;
+            i1 = new BlockIterator(corners[0].asVec(), velocity, 0, velocity.length(), false);
+            i2 = new BlockIterator(corners[1].asVec(), velocity, 0, velocity.length(), false);
 
             i1p = corners[0].asVec();
             i2p = corners[1].asVec();
@@ -296,47 +292,35 @@ public final class BlockCollision {
             Point initiali1p = i1p;
             Point initiali2p = i2p;
 
-            while (getAxisBlock(i1p) != target) {
+            while (getAxisBlock(i1p) != target && i1.hasNext()) {
                 li1p = i1p;
                 i1p = i1.next();
             }
 
-            while (getAxisBlock(i2p) != target) {
+            while (getAxisBlock(i2p) != target && i2.hasNext()) {
                 li2p = i2p;
                 i2p = i2.next();
             }
 
             // 2d
             int maxX, maxY, minX, minY;
-            int dx, dy;
 
             if (axis == BoundingBox.AxisMask.X) {
                 minX = min(initiali1p.blockY(), initiali2p.blockY(), li1p.blockY(), li2p.blockY());
                 minY = min(initiali1p.blockZ(), initiali2p.blockZ(), li1p.blockZ(), li2p.blockZ());
                 maxX = max(li1p.blockY(), li2p.blockY(), initiali1p.blockY(), initiali2p.blockY());
                 maxY = max(li1p.blockZ(), li2p.blockZ(), initiali1p.blockZ(), initiali2p.blockZ());
-                dx = direction.blockY();
-                dy = direction.blockZ();
             } else if (axis == BoundingBox.AxisMask.Y) {
                 minX = min(initiali1p.blockX(), initiali2p.blockX(), li1p.blockX(), li2p.blockX());
                 minY = min(initiali1p.blockZ(), initiali2p.blockZ(), li1p.blockZ(), li2p.blockZ());
                 maxX = max(li1p.blockX(), li2p.blockX(), initiali1p.blockX(), initiali2p.blockX());
                 maxY = max(li1p.blockZ(), li2p.blockZ(), initiali1p.blockZ(), initiali2p.blockZ());
-                dx = direction.blockX();
-                dy = direction.blockZ();
             } else if (axis == BoundingBox.AxisMask.Z) {
                 minX = min(initiali1p.blockX(), initiali2p.blockX(), li1p.blockX(), li2p.blockX());
                 minY = min(initiali1p.blockY(), initiali2p.blockY(), li1p.blockY(), li2p.blockY());
                 maxX = max(li1p.blockX(), li2p.blockX(), initiali1p.blockX(), initiali2p.blockX());
                 maxY = max(li1p.blockY(), li2p.blockY(), initiali1p.blockY(), initiali2p.blockY());
-                dx = direction.blockX();
-                dy = direction.blockY();
             } else throw new IllegalStateException("Invalid axis mask");
-
-            if (dx == 1 && ignoreBorderX) maxX -= 1;
-            if (dx == -1 && ignoreBorderX) minX += 1;
-            if (dy == 1 && ignoreBorderY) maxY -= 1;
-            if (dy == -1 && ignoreBorderY) minY += 1;
 
             var res = new AxisBlockIterator(axis, minX, minY, maxX, maxY, currentBlock);
             currentBlock = target;
@@ -362,34 +346,28 @@ public final class BlockCollision {
         corners[7] = position.add(new Vec(boundingBox.maxX(), boundingBox.maxY(), boundingBox.maxZ()));
 
         BoundingBoxFace[] faces = new BoundingBoxFace[3];
-        boolean edgeX = false;
-        boolean edgeY = false;
 
-        if (velocity.x() != 0) {
+        if (Math.abs(velocity.x()) > Vec.EPSILON) {
             if (velocity.x() > 0) {
-                faces[0] = new BoundingBoxFace(new Pos[]{corners[4], corners[7]}, position, velocity, BoundingBox.AxisMask.X, false, false);
-                edgeX = true;
+                faces[0] = new BoundingBoxFace(new Pos[]{corners[4], corners[7]}, position, velocity, BoundingBox.AxisMask.X);
             } else if (velocity.x() < 0) {
-                faces[0] = new BoundingBoxFace(new Pos[]{corners[0], corners[3]}, position, velocity, BoundingBox.AxisMask.X, false, false);
-                edgeX = true;
+                faces[0] = new BoundingBoxFace(new Pos[]{corners[0], corners[3]}, position, velocity, BoundingBox.AxisMask.X);
             }
         }
 
-        if (velocity.y() != 0) {
+        if (Math.abs(velocity.y()) > Vec.EPSILON) {
             if (velocity.y() > 0) {
-                faces[1] = new BoundingBoxFace(new Pos[]{corners[2], corners[7]}, position, velocity, BoundingBox.AxisMask.Y, edgeX, false);
-                edgeY = true;
+                faces[1] = new BoundingBoxFace(new Pos[]{corners[2], corners[7]}, position, velocity, BoundingBox.AxisMask.Y);
             } else if (velocity.y() < 0) {
-                faces[1] = new BoundingBoxFace(new Pos[]{corners[0], corners[5]}, position, velocity, BoundingBox.AxisMask.Y, edgeX, false);
-                edgeY = true;
+                faces[1] = new BoundingBoxFace(new Pos[]{corners[0], corners[5]}, position, velocity, BoundingBox.AxisMask.Y);
             }
         }
 
-        if (velocity.z() != 0) {
+        if (Math.abs(velocity.z()) > Vec.EPSILON) {
             if (velocity.z() > 0)
-                faces[2] = new BoundingBoxFace(new Pos[]{corners[1], corners[7]}, position, velocity, BoundingBox.AxisMask.Z, edgeX, edgeY);
+                faces[2] = new BoundingBoxFace(new Pos[]{corners[1], corners[7]}, position, velocity, BoundingBox.AxisMask.Z);
             else if (velocity.z() < 0)
-                faces[2] = new BoundingBoxFace(new Pos[]{corners[0], corners[6]}, position, velocity, BoundingBox.AxisMask.Z, edgeX, edgeY);
+                faces[2] = new BoundingBoxFace(new Pos[]{corners[0], corners[6]}, position, velocity, BoundingBox.AxisMask.Z);
         }
 
         return faces;
