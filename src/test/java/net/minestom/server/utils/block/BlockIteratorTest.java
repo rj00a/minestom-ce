@@ -292,7 +292,7 @@ public class BlockIteratorTest {
     }
 
     @Test
-    public void testIteratorUnique(Env env) {
+    public void testIteratorUnique() {
         Vec velocity = new Vec(10, -20, -20);
 
         Set<Point> points = new HashSet<>();

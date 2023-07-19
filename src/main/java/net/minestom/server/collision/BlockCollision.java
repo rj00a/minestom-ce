@@ -102,8 +102,7 @@ public final class BlockCollision {
         boolean hasCollided = false;
 
         // Query faces to get the points needed for collision
-        final Vec[] allFaces = calculateFaces(velocity, boundingBox);
-        PhysicsResult result = computePhysics(boundingBox, velocity, entityPosition, getter, allFaces, finalResult);
+        PhysicsResult result = computePhysics(boundingBox, velocity, entityPosition, getter, finalResult);
         // Loop until no collisions are found.
         // When collisions are found, the collision axis is set to 0
         // Looping until there are no collisions will allow the entity to move in axis other than the collision axis after a collision.
@@ -139,7 +138,7 @@ public final class BlockCollision {
             if (result.newVelocity().isZero()) break;
 
             finalResult.res = 1 - Vec.EPSILON;
-            result = computePhysics(boundingBox, result.newVelocity(), result.newPosition(), getter, allFaces, finalResult);
+            result = computePhysics(boundingBox, result.newVelocity(), result.newPosition(), getter, finalResult);
         }
 
         finalResult.res = result.res().res;
@@ -156,15 +155,12 @@ public final class BlockCollision {
     private static PhysicsResult computePhysics(@NotNull BoundingBox boundingBox,
                                                 @NotNull Vec velocity, Pos entityPosition,
                                                 @NotNull Block.Getter getter,
-                                                @NotNull Vec[] allFaces,
                                                 @NotNull SweepResult finalResult) {
-        // If the movement is small we don't need to run the expensive ray casting.
-        // Positions of move less than one can have hardcoded blocks to check for every direction
-        if (velocity.length() < 1) {
-            fastPhysics(boundingBox, velocity, entityPosition, getter, allFaces, finalResult);
-        } else {
-            slowPhysics(boundingBox, velocity, entityPosition, getter, allFaces, finalResult);
-        }
+        BoundingBoxFace[] face = getFaces(entityPosition, boundingBox, velocity);
+
+        if (face[0] != null) checkBlocks(face[0], velocity, entityPosition, boundingBox, getter, finalResult);
+        if (face[1] != null) checkBlocks(face[1], velocity, entityPosition, boundingBox, getter, finalResult);
+        if (face[2] != null) checkBlocks(face[2], velocity, entityPosition, boundingBox, getter, finalResult);
 
         final boolean collisionX = finalResult.normalX != 0;
         final boolean collisionY = finalResult.normalY != 0;
@@ -410,30 +406,6 @@ public final class BlockCollision {
         }
     }
 
-    private static void slowPhysics(@NotNull BoundingBox boundingBox,
-                                    @NotNull Vec velocity, Pos entityPosition,
-                                    @NotNull Block.Getter getter,
-                                    @NotNull Vec[] allFaces,
-                                    @NotNull SweepResult finalResult) {
-        BoundingBoxFace[] face = getFaces(entityPosition, boundingBox, velocity);
-
-        if (face[0] != null) checkBlocks(face[0], velocity, entityPosition, boundingBox, getter, finalResult);
-        if (face[1] != null) checkBlocks(face[1], velocity, entityPosition, boundingBox, getter, finalResult);
-        if (face[2] != null) checkBlocks(face[2], velocity, entityPosition, boundingBox, getter, finalResult);
-    }
-
-    private static void fastPhysics(@NotNull BoundingBox boundingBox,
-                                    @NotNull Vec velocity, Pos entityPosition,
-                                    @NotNull Block.Getter getter,
-                                    @NotNull Vec[] allFaces,
-                                    @NotNull SweepResult finalResult) {
-        BoundingBoxFace[] face = getFaces(entityPosition, boundingBox, velocity);
-
-        if (face[0] != null) checkBlocks(face[0], velocity, entityPosition, boundingBox, getter, finalResult);
-        if (face[1] != null) checkBlocks(face[1], velocity, entityPosition, boundingBox, getter, finalResult);
-        if (face[2] != null) checkBlocks(face[2], velocity, entityPosition, boundingBox, getter, finalResult);
-    }
-
     /**
      * Check if a moving entity will collide with a block. Updates finalResult
      *
@@ -525,112 +497,5 @@ public final class BlockCollision {
         corner
          */
         return m * (blockPos - pos + (m > 0 ? 1 : 0)) + entityY;
-    }
-
-    public static Vec[] calculateFaces(Vec queryVec, BoundingBox boundingBox) {
-        final int queryX = (int) Math.signum(queryVec.x());
-        final int queryY = (int) Math.signum(queryVec.y());
-        final int queryZ = (int) Math.signum(queryVec.z());
-
-        final int ceilWidth = (int) Math.ceil(boundingBox.width());
-        final int ceilHeight = (int) Math.ceil(boundingBox.height());
-        final int ceilDepth = (int) Math.ceil(boundingBox.depth());
-        Vec[] facePoints;
-        // Compute array length
-        {
-            final int ceilX = ceilWidth + 1;
-            final int ceilY = ceilHeight + 1;
-            final int ceilZ = ceilDepth + 1;
-            int pointCount = 0;
-            if (queryX != 0) pointCount += ceilY * ceilZ;
-            if (queryY != 0) pointCount += ceilX * ceilZ;
-            if (queryZ != 0) pointCount += ceilX * ceilY;
-            // Three edge reduction
-            if (queryX != 0 && queryY != 0 && queryZ != 0) {
-                pointCount -= ceilX + ceilY + ceilZ;
-                // inclusion exclusion principle
-                pointCount++;
-            } else if (queryX != 0 && queryY != 0) { // Two edge reduction
-                pointCount -= ceilZ;
-            } else if (queryY != 0 && queryZ != 0) { // Two edge reduction
-                pointCount -= ceilX;
-            } else if (queryX != 0 && queryZ != 0) { // Two edge reduction
-                pointCount -= ceilY;
-            }
-            facePoints = new Vec[pointCount];
-        }
-        int insertIndex = 0;
-        // X -> Y x Z
-        if (queryX != 0) {
-            int startIOffset = 0, endIOffset = 0, startJOffset = 0, endJOffset = 0;
-            // Y handles XY edge
-            if (queryY < 0) startJOffset = 1;
-            if (queryY > 0) endJOffset = 1;
-            // Z handles XZ edge
-            if (queryZ < 0) startIOffset = 1;
-            if (queryZ > 0) endIOffset = 1;
-
-            for (int i = startIOffset; i <= ceilDepth - endIOffset; ++i) {
-                for (int j = startJOffset; j <= ceilHeight - endJOffset; ++j) {
-                    double cellI = i;
-                    double cellJ = j;
-                    double cellK = queryX < 0 ? 0 : boundingBox.width();
-
-                    if (i >= boundingBox.depth()) cellI = boundingBox.depth();
-                    if (j >= boundingBox.height()) cellJ = boundingBox.height();
-
-                    cellI += boundingBox.minZ();
-                    cellJ += boundingBox.minY();
-                    cellK += boundingBox.minX();
-
-                    facePoints[insertIndex++] = new Vec(cellK, cellJ, cellI);
-                }
-            }
-        }
-        // Y -> X x Z
-        if (queryY != 0) {
-            int startJOffset = 0, endJOffset = 0;
-            // Z handles YZ edge
-            if (queryZ < 0) startJOffset = 1;
-            if (queryZ > 0) endJOffset = 1;
-
-            for (int i = startJOffset; i <= ceilDepth - endJOffset; ++i) {
-                for (int j = 0; j <= ceilWidth; ++j) {
-                    double cellI = i;
-                    double cellJ = j;
-                    double cellK = queryY < 0 ? 0 : boundingBox.height();
-
-                    if (i >= boundingBox.depth()) cellI = boundingBox.depth();
-                    if (j >= boundingBox.width()) cellJ = boundingBox.width();
-
-                    cellI += boundingBox.minZ();
-                    cellJ += boundingBox.minX();
-                    cellK += boundingBox.minY();
-
-                    facePoints[insertIndex++] = new Vec(cellJ, cellK, cellI);
-                }
-            }
-        }
-        // Z -> X x Y
-        if (queryZ != 0) {
-            for (int i = 0; i <= ceilHeight; ++i) {
-                for (int j = 0; j <= ceilWidth; ++j) {
-                    double cellI = i;
-                    double cellJ = j;
-                    double cellK = queryZ < 0 ? 0 : boundingBox.depth();
-
-                    if (i >= boundingBox.height()) cellI = boundingBox.height();
-                    if (j >= boundingBox.width()) cellJ = boundingBox.width();
-
-                    cellI += boundingBox.minY();
-                    cellJ += boundingBox.minX();
-                    cellK += boundingBox.minZ();
-
-                    facePoints[insertIndex++] = new Vec(cellJ, cellI, cellK);
-                }
-            }
-        }
-
-        return facePoints;
     }
 }
