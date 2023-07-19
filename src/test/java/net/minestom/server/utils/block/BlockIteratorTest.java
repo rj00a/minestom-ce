@@ -2,10 +2,13 @@ package net.minestom.server.utils.block;
 
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Vec;
+import net.minestom.testing.Env;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -268,11 +271,17 @@ public class BlockIteratorTest {
             new Vec(0.0, 0.0, 0.0),
             new Vec(1.0, 0.0, 0.0),
             new Vec(0.0, 1.0, 0.0),
+            new Vec(1.0, 1.0, 0.0),
+            new Vec(0.0, 1.0, 1.0),
+            new Vec(1.0, 0.0, 1.0),
             new Vec(0.0, 0.0, 1.0),
             new Vec(1.0, 1.0, 1.0),
             new Vec(2.0, 1.0, 1.0),
             new Vec(1.0, 2.0, 1.0),
             new Vec(1.0, 1.0, 2.0),
+            new Vec(2.0, 2.0, 1.0),
+            new Vec(1.0, 2.0, 2.0),
+            new Vec(2.0, 1.0, 2.0),
             new Vec(2.0, 2.0, 2.0)
         };
 
@@ -280,6 +289,22 @@ public class BlockIteratorTest {
             assertContains(points, p);
         }
         assertEquals(validPoints.length, points.size());
+    }
+
+    @Test
+    public void testIteratorUnique(Env env) {
+        Vec velocity = new Vec(10, -20, -20);
+
+        Set<Point> points = new HashSet<>();
+
+        BlockIterator iterator = new BlockIterator(new Vec(0, 0, 0), velocity, 0, velocity.length(), false);
+        while (iterator.hasNext()) {
+            var p = iterator.next();
+
+            if (!points.add(p)) {
+                fail("Point already found " + p);
+            }
+        }
     }
 
     @Test

@@ -10,14 +10,14 @@ import net.minestom.server.entity.Player;
 import net.minestom.server.entity.metadata.other.ArmorStandMeta;
 import net.minestom.server.instance.Instance;
 import net.minestom.server.instance.block.Block;
-import net.minestom.server.instance.block.BlockFace;
 import net.minestom.server.utils.block.BlockIterator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Iterator;
 
-final class BlockCollision {
+public final class BlockCollision {
     /**
      * Moves an entity with physics applied (ie checking against blocks)
      * <p>
@@ -102,7 +102,7 @@ final class BlockCollision {
         boolean hasCollided = false;
 
         // Query faces to get the points needed for collision
-        final Vec[] allFaces = calculateFacesOld(velocity, boundingBox, entityPosition);
+        final Vec[] allFaces = calculateFaces(velocity, boundingBox);
         PhysicsResult result = computePhysics(boundingBox, velocity, entityPosition, getter, allFaces, finalResult);
         // Loop until no collisions are found.
         // When collisions are found, the collision axis is set to 0
@@ -231,11 +231,11 @@ final class BlockCollision {
         }
     }
 
-    private static int getLowest(int a, int b, int c, int d) {
+    static private int min(int a, int b, int c, int d) {
         return Math.min(Math.min(a, b), Math.min(c, d));
     }
 
-    private static int getHighest(int a, int b, int c, int d) {
+    static private int max(int a, int b, int c, int d) {
         return Math.max(Math.max(a, b), Math.max(c, d));
     }
 
@@ -253,28 +253,28 @@ final class BlockCollision {
         public BoundingBoxFace(Pos[] corners, Pos start, Vec velocity, BoundingBox.AxisMask axis, boolean ignoreBorderX, boolean ignoreBorderY) {
             this.corners = corners;
 
+            this.axis = axis;
+            this.direction = new Vec(Math.signum(velocity.x()), Math.signum(velocity.y()), Math.signum(velocity.z()));
+
             if (axis == BoundingBox.AxisMask.X) {
                 currentBlock = (int) Math.floor(corners[0].blockX());
-                endBlock = (int) Math.floor(currentBlock + velocity.x());
+                endBlock = (int) Math.ceil(currentBlock + velocity.x()) + getAxisBlock(direction) * 2;
             } else if (axis == BoundingBox.AxisMask.Y) {
                 currentBlock = (int) Math.floor(corners[0].blockY());
-                endBlock = (int) Math.floor(currentBlock + velocity.y());
+                endBlock = (int) Math.ceil(currentBlock + velocity.y()) + getAxisBlock(direction) * 2;
             } else if (axis == BoundingBox.AxisMask.Z) {
                 currentBlock = (int) Math.floor(corners[0].blockZ());
-                endBlock = (int) Math.floor(currentBlock + velocity.z());
+                endBlock = (int) Math.ceil(currentBlock + velocity.z()) + getAxisBlock(direction) * 2;
             }
 
             i1 = new BlockIterator(corners[0].asVec(), velocity, 0, 0, false);
             i2 = new BlockIterator(corners[1].asVec(), velocity, 0, 0, false);
-            this.axis = axis;
 
             this.ignoreBorderX = ignoreBorderX;
             this.ignoreBorderY = ignoreBorderY;
 
-            this.direction = new Vec(Math.signum(velocity.x()), Math.signum(velocity.y()), Math.signum(velocity.z()));
-
-            i1p = i1.next();
-            i2p = i2.next();
+            i1p = corners[0].asVec();
+            i2p = corners[1].asVec();
         }
 
         @Override
@@ -292,7 +292,7 @@ final class BlockCollision {
         }
 
         public Iterator<Point> next() {
-            int target = currentBlock;
+            int target = currentBlock + getAxisBlock(direction);
 
             Point li1p = i1p;
             Point li2p = i2p;
@@ -300,65 +300,51 @@ final class BlockCollision {
             Point initiali1p = i1p;
             Point initiali2p = i2p;
 
-            System.out.println("Axis " + axis + " target " + target + " end " + endBlock + " current " + getAxisBlock(i1p) + " direction " + direction);
-            while (getAxisBlock(i1p) != target + 1) {
+            while (getAxisBlock(i1p) != target) {
                 li1p = i1p;
                 i1p = i1.next();
             }
-            System.out.println("complete");
 
-            System.out.println("Axis " + axis + " target " + target + " end " + endBlock + " current " + getAxisBlock(i2p) + " direction " + direction);
-            while (getAxisBlock(i2p) != target + 1) {
+            while (getAxisBlock(i2p) != target) {
                 li2p = i2p;
                 i2p = i2.next();
             }
-
-            System.out.println("complete");
 
             // 2d
             int maxX, maxY, minX, minY;
             int dx, dy;
 
             if (axis == BoundingBox.AxisMask.X) {
-                minX = initiali1p.blockY();
-                minY = initiali1p.blockZ();
-                maxX = li2p.blockY();
-                maxY = li2p.blockZ();
+                minX = min(initiali1p.blockY(), initiali2p.blockY(), li1p.blockY(), li2p.blockY());
+                minY = min(initiali1p.blockZ(), initiali2p.blockZ(), li1p.blockZ(), li2p.blockZ());
+                maxX = max(li1p.blockY(), li2p.blockY(), initiali1p.blockY(), initiali2p.blockY());
+                maxY = max(li1p.blockZ(), li2p.blockZ(), initiali1p.blockZ(), initiali2p.blockZ());
                 dx = direction.blockY();
                 dy = direction.blockZ();
             } else if (axis == BoundingBox.AxisMask.Y) {
-                minX = initiali1p.blockX();
-                minY = initiali1p.blockZ();
-                maxX = li2p.blockX();
-                maxY = li2p.blockZ();
+                minX = min(initiali1p.blockX(), initiali2p.blockX(), li1p.blockX(), li2p.blockX());
+                minY = min(initiali1p.blockZ(), initiali2p.blockZ(), li1p.blockZ(), li2p.blockZ());
+                maxX = max(li1p.blockX(), li2p.blockX(), initiali1p.blockX(), initiali2p.blockX());
+                maxY = max(li1p.blockZ(), li2p.blockZ(), initiali1p.blockZ(), initiali2p.blockZ());
                 dx = direction.blockX();
                 dy = direction.blockZ();
             } else if (axis == BoundingBox.AxisMask.Z) {
-                minX = initiali1p.blockX();
-                minY = initiali1p.blockY();
-                maxX = li2p.blockX();
-                maxY = li2p.blockY();
+                minX = min(initiali1p.blockX(), initiali2p.blockX(), li1p.blockX(), li2p.blockX());
+                minY = min(initiali1p.blockY(), initiali2p.blockY(), li1p.blockY(), li2p.blockY());
+                maxX = max(li1p.blockX(), li2p.blockX(), initiali1p.blockX(), initiali2p.blockX());
+                maxY = max(li1p.blockY(), li2p.blockY(), initiali1p.blockY(), initiali2p.blockY());
                 dx = direction.blockX();
                 dy = direction.blockY();
             } else throw new IllegalStateException("Invalid axis mask");
 
+            if (dx == 1 && ignoreBorderX) maxX -= 1;
+            if (dx == -1 && ignoreBorderX) minX += 1;
+            if (dy == 1 && ignoreBorderY) maxY -= 1;
+            if (dy == -1 && ignoreBorderY) minY += 1;
 
-            // if (dx == 1 && ignoreBorderX) maxX--;
-            // if (dx == -1 && ignoreBorderX) minX--;
-            // if (dy == 1 && ignoreBorderY) maxY--;
-            // if (dy == -1 && ignoreBorderY) minY--;
-
-            currentBlock++;
-
-            System.out.println("i1p = " + initiali1p + " " + li1p);
-            System.out.println("i2p = " + initiali2p + " " + li2p);
-
-            System.out.println("minX = " + minX);
-            System.out.println("minY = " + minY);
-            System.out.println("maxX = " + maxX);
-            System.out.println("maxY = " + maxY);
-
-            return new AxisBlockIterator(axis, minX, minY, maxX, maxY, target);
+            var res = new AxisBlockIterator(axis, minX, minY, maxX, maxY, currentBlock);
+            currentBlock = target;
+            return res;
         }
 
         @Override
@@ -413,16 +399,13 @@ final class BlockCollision {
         return faces;
     }
 
-    private static void applyFace(BoundingBoxFace face, @NotNull Vec velocity, Pos entityPosition, BoundingBox boundingBox, @NotNull Block.Getter getter, @NotNull SweepResult finalResult) {
-        while (face.hasNext()) {
-            Iterator<Point> iterator = face.next();
+    static private void checkBlocks(Iterator<Iterator<Point>> iterator, @NotNull Vec velocity, Pos entityPosition, @NotNull BoundingBox boundingBox, @NotNull Block.Getter getter, @NotNull SweepResult finalResult) {
+        while (iterator.hasNext()) {
+            var i = iterator.next();
 
-            while (iterator.hasNext()) {
-                var p = iterator.next();
-                System.out.println("POINT " + p);
-                if (checkBoundingBox(p.blockX(), p.blockY(), p.blockZ(), velocity, entityPosition, boundingBox, getter, finalResult)) {
-                    break;
-                }
+            while (i.hasNext()) {
+                var p2 = i.next();
+                checkBoundingBox(p2.blockX(), p2.blockY(), p2.blockZ(), velocity, entityPosition, boundingBox, getter, finalResult);
             }
         }
     }
@@ -432,16 +415,11 @@ final class BlockCollision {
                                     @NotNull Block.Getter getter,
                                     @NotNull Vec[] allFaces,
                                     @NotNull SweepResult finalResult) {
+        BoundingBoxFace[] face = getFaces(entityPosition, boundingBox, velocity);
 
-        BoundingBoxFace[] faces = getFaces(entityPosition, boundingBox, velocity);
-        System.out.println(Arrays.toString(faces));
-
-        System.out.println("FACE X");
-        if (faces[0] != null) applyFace(faces[0], velocity, entityPosition, boundingBox, getter, finalResult);
-        System.out.println("FACE Y");
-        if (faces[1] != null) applyFace(faces[1], velocity, entityPosition, boundingBox, getter, finalResult);
-        System.out.println("FACE Z");
-        if (faces[2] != null) applyFace(faces[2], velocity, entityPosition, boundingBox, getter, finalResult);
+        if (face[0] != null) checkBlocks(face[0], velocity, entityPosition, boundingBox, getter, finalResult);
+        if (face[1] != null) checkBlocks(face[1], velocity, entityPosition, boundingBox, getter, finalResult);
+        if (face[2] != null) checkBlocks(face[2], velocity, entityPosition, boundingBox, getter, finalResult);
     }
 
     private static void fastPhysics(@NotNull BoundingBox boundingBox,
@@ -449,53 +427,11 @@ final class BlockCollision {
                                     @NotNull Block.Getter getter,
                                     @NotNull Vec[] allFaces,
                                     @NotNull SweepResult finalResult) {
-        for (Vec point : allFaces) {
-            final Vec pointAfter = point.add(velocity);
-            // Entity can pass through up to 4 blocks. Starting block, Two intermediate blocks, and a final block.
-            // This means we must check every combination of block movements when an entity moves over an axis.
-            // 000, 001, 010, 011, etc.
-            // There are 8 of these combinations
-            // Checks can be limited by checking if we moved across an axis line
+        BoundingBoxFace[] face = getFaces(entityPosition, boundingBox, velocity);
 
-            boolean needsX = point.x() != pointAfter.x();
-            boolean needsY = point.y() != pointAfter.y();
-            boolean needsZ = point.z() != pointAfter.z();
-
-            checkBoundingBox(point.blockX(), point.blockY(), point.blockZ(), velocity, entityPosition, boundingBox, getter, finalResult);
-
-            if (needsX && needsY && needsZ) {
-                checkBoundingBox(pointAfter.blockX(), pointAfter.blockY(), pointAfter.blockZ(), velocity, entityPosition, boundingBox, getter, finalResult);
-
-                checkBoundingBox(pointAfter.blockX(), pointAfter.blockY(), point.blockZ(), velocity, entityPosition, boundingBox, getter, finalResult);
-                checkBoundingBox(pointAfter.blockX(), point.blockY(), pointAfter.blockZ(), velocity, entityPosition, boundingBox, getter, finalResult);
-                checkBoundingBox(point.blockX(), pointAfter.blockY(), pointAfter.blockZ(), velocity, entityPosition, boundingBox, getter, finalResult);
-
-                checkBoundingBox(pointAfter.blockX(), point.blockY(), point.blockZ(), velocity, entityPosition, boundingBox, getter, finalResult);
-                checkBoundingBox(point.blockX(), pointAfter.blockY(), point.blockZ(), velocity, entityPosition, boundingBox, getter, finalResult);
-                checkBoundingBox(point.blockX(), point.blockY(), pointAfter.blockZ(), velocity, entityPosition, boundingBox, getter, finalResult);
-            } else if (needsX && needsY) {
-                checkBoundingBox(pointAfter.blockX(), pointAfter.blockY(), point.blockZ(), velocity, entityPosition, boundingBox, getter, finalResult);
-
-                checkBoundingBox(pointAfter.blockX(), point.blockY(), point.blockZ(), velocity, entityPosition, boundingBox, getter, finalResult);
-                checkBoundingBox(point.blockX(), pointAfter.blockY(), point.blockZ(), velocity, entityPosition, boundingBox, getter, finalResult);
-            } else if (needsX && needsZ) {
-                checkBoundingBox(pointAfter.blockX(), point.blockY(), pointAfter.blockZ(), velocity, entityPosition, boundingBox, getter, finalResult);
-
-                checkBoundingBox(pointAfter.blockX(), point.blockY(), point.blockZ(), velocity, entityPosition, boundingBox, getter, finalResult);
-                checkBoundingBox(point.blockX(), point.blockY(), pointAfter.blockZ(), velocity, entityPosition, boundingBox, getter, finalResult);
-            } else if (needsY && needsZ) {
-                checkBoundingBox(point.blockX(), pointAfter.blockY(), pointAfter.blockZ(), velocity, entityPosition, boundingBox, getter, finalResult);
-
-                checkBoundingBox(point.blockX(), pointAfter.blockY(), point.blockZ(), velocity, entityPosition, boundingBox, getter, finalResult);
-                checkBoundingBox(point.blockX(), point.blockY(), pointAfter.blockZ(), velocity, entityPosition, boundingBox, getter, finalResult);
-            } else if (needsX) {
-                checkBoundingBox(pointAfter.blockX(), point.blockY(), point.blockZ(), velocity, entityPosition, boundingBox, getter, finalResult);
-            } else if (needsY) {
-                checkBoundingBox(point.blockX(), pointAfter.blockY(), point.blockZ(), velocity, entityPosition, boundingBox, getter, finalResult);
-            } else if (needsZ) {
-                checkBoundingBox(point.blockX(), point.blockY(), pointAfter.blockZ(), velocity, entityPosition, boundingBox, getter, finalResult);
-            }
-        }
+        if (face[0] != null) checkBlocks(face[0], velocity, entityPosition, boundingBox, getter, finalResult);
+        if (face[1] != null) checkBlocks(face[1], velocity, entityPosition, boundingBox, getter, finalResult);
+        if (face[2] != null) checkBlocks(face[2], velocity, entityPosition, boundingBox, getter, finalResult);
     }
 
     /**
@@ -591,23 +527,10 @@ final class BlockCollision {
         return m * (blockPos - pos + (m > 0 ? 1 : 0)) + entityY;
     }
 
-    private static Vec[] calculateFaces(Vec velocity, BoundingBox boundingBox, Point start) {
-        List<Vec> vecs = new ArrayList<>();
-
-        boundingBox.getBlocks(start).forEachRemaining(block -> {
-            vecs.add(Vec.fromPoint(block));
-            System.out.println(block);
-        });
-
-        System.out.println("vecs: " + vecs.size());
-
-        return vecs.toArray(new Vec[0]);
-    }
-
-    private static Vec[] calculateFacesOld(Vec velocity, BoundingBox boundingBox, Point start) {
-        final int queryX = (int) Math.signum(velocity.x());
-        final int queryY = (int) Math.signum(velocity.y());
-        final int queryZ = (int) Math.signum(velocity.z());
+    public static Vec[] calculateFaces(Vec queryVec, BoundingBox boundingBox) {
+        final int queryX = (int) Math.signum(queryVec.x());
+        final int queryY = (int) Math.signum(queryVec.y());
+        final int queryZ = (int) Math.signum(queryVec.z());
 
         final int ceilWidth = (int) Math.ceil(boundingBox.width());
         final int ceilHeight = (int) Math.ceil(boundingBox.height());
@@ -660,7 +583,7 @@ final class BlockCollision {
                     cellJ += boundingBox.minY();
                     cellK += boundingBox.minX();
 
-                    facePoints[insertIndex++] = new Vec(cellK, cellJ, cellI).add(start);
+                    facePoints[insertIndex++] = new Vec(cellK, cellJ, cellI);
                 }
             }
         }
@@ -684,7 +607,7 @@ final class BlockCollision {
                     cellJ += boundingBox.minX();
                     cellK += boundingBox.minY();
 
-                    facePoints[insertIndex++] = new Vec(cellJ, cellK, cellI).add(start);
+                    facePoints[insertIndex++] = new Vec(cellJ, cellK, cellI);
                 }
             }
         }
@@ -703,7 +626,7 @@ final class BlockCollision {
                     cellJ += boundingBox.minX();
                     cellK += boundingBox.minZ();
 
-                    facePoints[insertIndex++] = new Vec(cellJ, cellI, cellK).add(start);
+                    facePoints[insertIndex++] = new Vec(cellJ, cellI, cellK);
                 }
             }
         }
