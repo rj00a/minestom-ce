@@ -92,7 +92,7 @@ final class SkyLight implements Light {
         return Block.fromStateId((short)palette.get(x, y, z));
     }
 
-    private static IntArrayFIFOQueue buildExternalQueue(Instance instance, Block[] blocks, Map<BlockFace, Point> neighbors, byte[][] borders) {
+    private static IntArrayFIFOQueue buildExternalQueue(Instance instance, Palette blockPalette, Map<BlockFace, Point> neighbors, byte[][] borders) {
         IntArrayFIFOQueue lightSources = new IntArrayFIFOQueue();
 
         for (BlockFace face : BlockFace.values()) {
@@ -124,22 +124,25 @@ final class SkyLight implements Light {
                         case EAST, TOP, SOUTH -> 15;
                     };
 
+                    Section otherSection = chunk.getSection(neighborSection.blockY());
+
                     final int posTo = switch (face) {
                         case NORTH, SOUTH -> bx | (k << 4) | (by << 8);
                         case WEST, EAST -> k | (by << 4) | (bx << 8);
                         default -> bx | (by << 4) | (k << 8);
                     };
 
-                    Section otherSection = chunk.getSection(neighborSection.blockY());
+                    final Block blockTo = switch(face) {
+                        case NORTH, SOUTH -> getBlock(blockPalette, bx, by, k);
+                        case WEST, EAST -> getBlock(blockPalette, k, bx, by);
+                        default -> getBlock(blockPalette, bx, k, by);
+                    };
 
                     final Block blockFrom = (switch (face) {
                         case NORTH, SOUTH -> getBlock(otherSection.blockPalette(), bx, by, 15 - k);
                         case WEST, EAST -> getBlock(otherSection.blockPalette(), 15 - k, bx, by);
                         default -> getBlock(otherSection.blockPalette(), bx, 15 - k, by);
                     });
-
-                    if (blocks == null) continue;
-                    Block blockTo = blocks[posTo];
 
                     if (blockTo == null && blockFrom != null) {
                         if (blockFrom.registry().collisionShape().isOccluded(Block.AIR.registry().collisionShape(), face.getOppositeFace()))
@@ -176,8 +179,6 @@ final class SkyLight implements Light {
         this.isValidBorders = true;
 
         // Update single section with base lighting changes
-        Block[] blocks = blocks();
-
         int queueSize = SECTION_SIZE * SECTION_SIZE * SECTION_SIZE;
         IntArrayFIFOQueue queue = new IntArrayFIFOQueue(0);
         if (!fullyLit) {
@@ -190,7 +191,7 @@ final class SkyLight implements Light {
             this.content = contentFullyLit;
             this.borders = bordersFullyLit;
         } else {
-            Result result = LightCompute.compute(blocks, queue);
+            Result result = LightCompute.compute(blockPalette, queue);
             this.content = result.light();
             this.borders = result.borders();
         }
@@ -270,19 +271,6 @@ final class SkyLight implements Light {
         return true;
     }
 
-    private Block[] blocks() {
-        Block[] blocks = new Block[SECTION_SIZE * SECTION_SIZE * SECTION_SIZE];
-
-        blockPalette.getAllPresent((x, y, z, stateId) -> {
-            final Block block = Block.fromStateId((short) stateId);
-            assert block != null;
-            final int index = x | (z << 4) | (y << 8);
-            blocks[index] = block;
-        });
-
-        return blocks;
-    }
-
     @Override
     public Light calculateExternal(Instance instance, Chunk chunk, int sectionY) {
         if (!isValidBorders) clearCache();
@@ -290,13 +278,12 @@ final class SkyLight implements Light {
         Map<BlockFace, Point> neighbors = Light.getNeighbors(chunk, sectionY);
         Set<Point> toUpdate = new HashSet<>();
 
-        Block[] blocks = blocks();
         IntArrayFIFOQueue queue;
 
         byte[][] borderTemp = bordersFullyLit;
         if (!fullyLit) {
-            queue = buildExternalQueue(instance, blocks, neighbors, borders);
-            LightCompute.Result result = LightCompute.compute(blocks, queue);
+            queue = buildExternalQueue(instance, blockPalette, neighbors, borders);
+            LightCompute.Result result = LightCompute.compute(blockPalette, queue);
 
             byte[] contentPropagationTemp = result.light();
             borderTemp = result.borders();

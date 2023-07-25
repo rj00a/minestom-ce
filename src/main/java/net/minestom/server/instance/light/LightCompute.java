@@ -22,11 +22,10 @@ public final class LightCompute {
     public static final byte[] emptyContent = new byte[LIGHT_LENGTH];
 
     static @NotNull Result compute(Palette blockPalette) {
-        Block[] blocks = new Block[4096];
-        return LightCompute.compute(blocks, buildInternalQueue(blockPalette, blocks));
+        return LightCompute.compute(blockPalette, buildInternalQueue(blockPalette));
     }
 
-    static @NotNull Result compute(Block[] blocks, IntArrayFIFOQueue lightPre) {
+    static @NotNull Result compute(Palette blockPalette, IntArrayFIFOQueue lightPre) {
         if (lightPre.isEmpty()) {
             return new Result(emptyContent, emptyBorders);
         }
@@ -80,9 +79,9 @@ public final class LightCompute {
                 // Section
                 final int newIndex = xO | (zO << 4) | (yO << 8);
                 if (getLight(lightArray, newIndex) + 2 <= lightLevel) {
-                    final Block currentBlock = Objects.requireNonNullElse(blocks[x | (z << 4) | (y << 8)], Block.AIR);
+                    final Block currentBlock = Objects.requireNonNullElse(Block.fromStateId((short)blockPalette.get(x, y, z)), Block.AIR);
+                    final Block propagatedBlock = Objects.requireNonNullElse(Block.fromStateId((short)blockPalette.get(xO, yO, zO)), Block.AIR);
 
-                    final Block propagatedBlock = Objects.requireNonNullElse(blocks[newIndex], Block.AIR);
                     boolean airAir = currentBlock.isAir() && propagatedBlock.isAir();
                     if (!airAir && currentBlock.registry().collisionShape().isOccluded(propagatedBlock.registry().collisionShape(), face)) continue;
                     placeLight(lightArray, newIndex, newLightLevel);
