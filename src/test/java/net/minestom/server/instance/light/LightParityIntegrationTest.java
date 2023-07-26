@@ -19,6 +19,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -35,12 +36,18 @@ public class LightParityIntegrationTest {
         instance.setChunkSupplier(LightingChunk::new);
         instance.setChunkLoader(new AnvilLoader(Path.of("./src/test/resources/net/minestom/server/instance/lighting")));
 
+        List<CompletableFuture<Chunk>> futures = new ArrayList<>();
+
         int end = 4;
         // Load the chunks
         for (int x = 0; x < end; x++) {
             for (int z = 0; z < end; z++) {
-                instance.loadChunk(x, z).join();
+                futures.add(instance.loadChunk(x, z));
             }
+        }
+
+        for (CompletableFuture<Chunk> future : futures) {
+            future.join();
         }
 
         LightingChunk.relight(instance, instance.getChunks());
