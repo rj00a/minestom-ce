@@ -38,7 +38,7 @@ public class LightParityIntegrationTest {
 
         List<CompletableFuture<Chunk>> futures = new ArrayList<>();
 
-        int end = 4;
+        int end = 3;
         // Load the chunks
         for (int x = 0; x < end; x++) {
             for (int z = 0; z < end; z++) {
@@ -67,7 +67,7 @@ public class LightParityIntegrationTest {
             }
 
             for (int sectionIndex = chunk.getMinSection(); sectionIndex < chunk.getMaxSection(); sectionIndex++) {
-                if (sectionIndex != 3) continue;
+                if (sectionIndex > 6) continue;
 
                 Section section = chunk.getSection(sectionIndex);
 
