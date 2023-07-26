@@ -1,6 +1,6 @@
 package net.minestom.server.instance.light;
 
-import it.unimi.dsi.fastutil.ints.IntArrayFIFOQueue;
+import it.unimi.dsi.fastutil.shorts.ShortArrayFIFOQueue;
 import net.minestom.server.instance.block.Block;
 import net.minestom.server.instance.block.BlockFace;
 import net.minestom.server.instance.palette.Palette;
@@ -25,7 +25,7 @@ public final class LightCompute {
         return LightCompute.compute(blockPalette, buildInternalQueue(blockPalette));
     }
 
-    static @NotNull Result compute(Palette blockPalette, IntArrayFIFOQueue lightPre) {
+    static @NotNull Result compute(Palette blockPalette, ShortArrayFIFOQueue lightPre) {
         if (lightPre.isEmpty()) {
             return new Result(emptyContent, emptyBorders);
         }
@@ -36,7 +36,7 @@ public final class LightCompute {
         var lightSources = new ArrayDeque<Integer>();
 
         while (!lightPre.isEmpty()) {
-            int index = lightPre.dequeueInt();
+            int index = lightPre.dequeueShort();
 
             final int x = index & 15;
             final int z = (index >> 4) & 15;

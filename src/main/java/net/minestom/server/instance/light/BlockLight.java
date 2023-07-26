@@ -1,6 +1,6 @@
 package net.minestom.server.instance.light;
 
-import it.unimi.dsi.fastutil.ints.IntArrayFIFOQueue;
+import it.unimi.dsi.fastutil.shorts.ShortArrayFIFOQueue;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.instance.Chunk;
@@ -11,7 +11,10 @@ import net.minestom.server.instance.block.BlockFace;
 import net.minestom.server.instance.palette.Palette;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 import static net.minestom.server.instance.light.LightCompute.*;
 
@@ -48,8 +51,8 @@ final class BlockLight implements Light {
         return toUpdateSet;
     }
 
-    static IntArrayFIFOQueue buildInternalQueue(Palette blockPalette) {
-        IntArrayFIFOQueue lightSources = new IntArrayFIFOQueue();
+    static ShortArrayFIFOQueue buildInternalQueue(Palette blockPalette) {
+        ShortArrayFIFOQueue lightSources = new ShortArrayFIFOQueue();
         // Apply section light
         blockPalette.getAllPresent((x, y, z, stateId) -> {
             final Block block = Block.fromStateId((short) stateId);
@@ -58,7 +61,7 @@ final class BlockLight implements Light {
 
             final int index = x | (z << 4) | (y << 8);
             if (lightEmission > 0) {
-                lightSources.enqueue(index | (lightEmission << 12));
+                lightSources.enqueue((short) (index | (lightEmission << 12)));
             }
         });
         return lightSources;
@@ -68,8 +71,8 @@ final class BlockLight implements Light {
         return Block.fromStateId((short)palette.get(x, y, z));
     }
 
-    private static IntArrayFIFOQueue buildExternalQueue(Instance instance, Palette blockPalette, Map<BlockFace, Point> neighbors, byte[][] borders) {
-        IntArrayFIFOQueue lightSources = new IntArrayFIFOQueue();
+    private static ShortArrayFIFOQueue buildExternalQueue(Instance instance, Palette blockPalette, Map<BlockFace, Point> neighbors, byte[][] borders) {
+        ShortArrayFIFOQueue lightSources = new ShortArrayFIFOQueue();
 
         for (BlockFace face : BlockFace.values()) {
             Point neighborSection = neighbors.get(face);
@@ -129,7 +132,7 @@ final class BlockLight implements Light {
 
                     if (lightEmission > 0) {
                         final int index = posTo | (lightEmission << 12);
-                        lightSources.enqueue(index);
+                        lightSources.enqueue((short) index);
                     }
                 }
             }
@@ -157,7 +160,7 @@ final class BlockLight implements Light {
         Set<Point> toUpdate = new HashSet<>();
 
         // Update single section with base lighting changes
-        IntArrayFIFOQueue queue = buildInternalQueue(blockPalette);
+        ShortArrayFIFOQueue queue = buildInternalQueue(blockPalette);
 
         Result result = LightCompute.compute(blockPalette, queue);
         this.content = result.light();
@@ -241,7 +244,7 @@ final class BlockLight implements Light {
 
         Map<BlockFace, Point> neighbors = Light.getNeighbors(chunk, sectionY);
 
-        IntArrayFIFOQueue queue = buildExternalQueue(instance, blockPalette, neighbors, borders);
+        ShortArrayFIFOQueue queue = buildExternalQueue(instance, blockPalette, neighbors, borders);
         LightCompute.Result result = LightCompute.compute(blockPalette, queue);
 
         byte[] contentPropagationTemp = result.light();

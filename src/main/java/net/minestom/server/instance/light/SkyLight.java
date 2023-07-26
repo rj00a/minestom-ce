@@ -1,6 +1,6 @@
 package net.minestom.server.instance.light;
 
-import it.unimi.dsi.fastutil.ints.IntArrayFIFOQueue;
+import it.unimi.dsi.fastutil.shorts.ShortArrayFIFOQueue;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.instance.Chunk;
@@ -64,8 +64,8 @@ final class SkyLight implements Light {
         return toUpdateSet;
     }
 
-    static IntArrayFIFOQueue buildInternalQueue(Chunk c, int sectionY) {
-        IntArrayFIFOQueue lightSources = new IntArrayFIFOQueue();
+    static ShortArrayFIFOQueue buildInternalQueue(Chunk c, int sectionY) {
+        ShortArrayFIFOQueue lightSources = new ShortArrayFIFOQueue();
 
         if (c instanceof LightingChunk lc) {
             int[] heightmap = lc.calculateHeightMap();
@@ -79,7 +79,7 @@ final class SkyLight implements Light {
 
                     for (int y = Math.min(sectionMaxY, maxY); y >= Math.max(height, sectionMinY); y--) {
                         int index = x | (z << 4) | ((y % 16) << 8);
-                        lightSources.enqueue(index | (15 << 12));
+                        lightSources.enqueue((short) (index | (15 << 12)));
                     }
                 }
             }
@@ -92,8 +92,8 @@ final class SkyLight implements Light {
         return Block.fromStateId((short)palette.get(x, y, z));
     }
 
-    private static IntArrayFIFOQueue buildExternalQueue(Instance instance, Palette blockPalette, Map<BlockFace, Point> neighbors, byte[][] borders) {
-        IntArrayFIFOQueue lightSources = new IntArrayFIFOQueue();
+    private static ShortArrayFIFOQueue buildExternalQueue(Instance instance, Palette blockPalette, Map<BlockFace, Point> neighbors, byte[][] borders) {
+        ShortArrayFIFOQueue lightSources = new ShortArrayFIFOQueue();
 
         for (BlockFace face : BlockFace.values()) {
             Point neighborSection = neighbors.get(face);
@@ -158,7 +158,7 @@ final class SkyLight implements Light {
                     final int index = posTo | (lightEmission << 12);
 
                     if (lightEmission > 0) {
-                        lightSources.enqueue(index);
+                        lightSources.enqueue((short) index);
                     }
                 }
             }
@@ -184,7 +184,7 @@ final class SkyLight implements Light {
 
         // Update single section with base lighting changes
         int queueSize = SECTION_SIZE * SECTION_SIZE * SECTION_SIZE;
-        IntArrayFIFOQueue queue = new IntArrayFIFOQueue(0);
+        ShortArrayFIFOQueue queue = new ShortArrayFIFOQueue(0);
         if (!fullyLit) {
             queue = buildInternalQueue(chunk, sectionY);
             queueSize = queue.size();
@@ -282,7 +282,7 @@ final class SkyLight implements Light {
         Map<BlockFace, Point> neighbors = Light.getNeighbors(chunk, sectionY);
         Set<Point> toUpdate = new HashSet<>();
 
-        IntArrayFIFOQueue queue;
+        ShortArrayFIFOQueue queue;
 
         byte[][] borderTemp = bordersFullyLit;
         if (!fullyLit) {
