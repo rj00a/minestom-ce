@@ -26,6 +26,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static net.minestom.server.instance.light.LightCompute.emptyContent;
 
@@ -319,7 +321,7 @@ public class LightingChunk extends DynamicChunk {
 
         while (count.get() < queue.size()) { }
 
-        if (newQueue.size() > 0 && queueType == QueueType.EXTERNAL) {
+        if (newQueue.size() > 0) {
             flushQueue(instance, newQueue, type, QueueType.EXTERNAL);
         }
     }
@@ -406,9 +408,8 @@ public class LightingChunk extends DynamicChunk {
         }
     }
 
-    private static void relight(Instance instance, Set<Point> sections, LightType type) {
-        flushQueue(instance, sections, type, QueueType.INTERNAL);
-        flushQueue(instance, sections, type, QueueType.EXTERNAL);
+    private static void relight(Instance instance, Set<Point> queue, LightType type) {
+        flushQueue(instance, queue, type, QueueType.INTERNAL);
     }
 
     @Override
