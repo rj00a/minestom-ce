@@ -26,8 +26,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static net.minestom.server.instance.light.LightCompute.emptyContent;
 
@@ -270,7 +268,7 @@ public class LightingChunk extends DynamicChunk {
             for (LightingChunk f : copy) {
                 if (f.isLoaded()) {
                     f.sendLighting();
-                    if (f.getViewers().size() == 0) return;
+                    if (f.getViewers().size() == 0) continue;
                 }
                 count++;
 
