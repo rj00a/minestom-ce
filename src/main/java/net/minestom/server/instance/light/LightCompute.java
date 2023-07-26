@@ -7,7 +7,7 @@ import net.minestom.server.instance.palette.Palette;
 import net.minestom.server.utils.Direction;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.LinkedList;
+import java.util.ArrayDeque;
 import java.util.Objects;
 
 import static net.minestom.server.instance.light.BlockLight.buildInternalQueue;
@@ -33,7 +33,7 @@ public final class LightCompute {
         byte[][] borders = new byte[FACES.length][SIDE_LENGTH];
         byte[] lightArray = new byte[LIGHT_LENGTH];
 
-        var lightSources = new LinkedList<Integer>();
+        var lightSources = new ArrayDeque<Integer>();
 
         while (!lightPre.isEmpty()) {
             int index = lightPre.dequeueInt();

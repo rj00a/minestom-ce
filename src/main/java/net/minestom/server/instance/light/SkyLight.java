@@ -176,6 +176,10 @@ final class SkyLight implements Light {
     @Override
     public Light calculateInternal(Instance instance, int chunkX, int sectionY, int chunkZ) {
         Chunk chunk = instance.getChunk(chunkX, chunkZ);
+        if (chunk == null) {
+            this.toUpdateSet = Set.of();
+            return this;
+        }
         this.isValidBorders = true;
 
         // Update single section with base lighting changes

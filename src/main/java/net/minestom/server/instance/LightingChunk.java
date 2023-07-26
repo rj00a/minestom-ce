@@ -21,10 +21,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import static net.minestom.server.instance.light.LightCompute.emptyContent;
 
@@ -32,6 +33,8 @@ public class LightingChunk extends DynamicChunk {
 
     private static final int LIGHTING_CHUNKS_PER_SEND = Integer.getInteger("minestom.lighting.chunks-per-send", 10);
     private static final int LIGHTING_CHUNKS_SEND_DELAY = Integer.getInteger("minestom.lighting.chunks-send-delay", 100);
+
+    private static final ExecutorService pool = Executors.newWorkStealingPool();
 
     private int[] heightmap;
     final CachedPacket lightCache = new CachedPacket(this::createLightPacket);
@@ -83,23 +86,12 @@ public class LightingChunk extends DynamicChunk {
     }
 
     private void invalidateSection(int coordinate) {
-        for (int i = -1; i <= 1; i++) {
-            for (int j = -1; j <= 1; j++) {
-                Chunk neighborChunk = instance.getChunk(chunkX + i, chunkZ + j);
-                if (neighborChunk == null) continue;
+        var section = getSection(coordinate);
+        section.blockLight().invalidate();
+        section.skyLight().invalidate();
 
-                if (neighborChunk instanceof LightingChunk light) {
-                    light.lightCache.invalidate();
-                    light.chunkCache.invalidate();
-                }
-
-                for (int k = -1; k <= 1; k++) {
-                    if (k + coordinate < neighborChunk.getMinSection() || k + coordinate >= neighborChunk.getMaxSection()) continue;
-                    neighborChunk.getSection(k + coordinate).blockLight().invalidate();
-                    neighborChunk.getSection(k + coordinate).skyLight().invalidate();
-                }
-            }
-        }
+        lightCache.invalidate();
+        chunkCache.invalidate();
     }
 
     @Override
@@ -294,50 +286,53 @@ public class LightingChunk extends DynamicChunk {
     }
 
     private static void flushQueue(Instance instance, Set<Point> queue, LightType type) {
-        var updateQueue =
-                queue.parallelStream()
-                        .map(sectionLocation -> {
-                            Chunk chunk = instance.getChunk(sectionLocation.blockX(), sectionLocation.blockZ());
-                            if (chunk == null) return null;
+        AtomicInteger count = new AtomicInteger(0);
+        Set<Light> sections = ConcurrentHashMap.newKeySet();
 
-                            if (type == LightType.BLOCK) {
-                                return chunk.getSection(sectionLocation.blockY()).blockLight()
-                                        .calculateExternal(instance, chunk, sectionLocation.blockY());
-                            } else {
-                                return chunk.getSection(sectionLocation.blockY()).skyLight()
-                                        .calculateExternal(instance, chunk, sectionLocation.blockY());
-                            }
-                        })
-                        .filter(Objects::nonNull)
-                        .toList()
-                        .parallelStream()
-                        .flatMap(light -> light.flip().stream())
-                        .collect(Collectors.toSet());
+        for (Point point : queue) {
+            Chunk chunk = instance.getChunk(point.blockX(), point.blockZ());
+            if (chunk == null) continue;
 
-        if (updateQueue.size() > 0) {
-            flushQueue(instance, updateQueue, type);
+            var light = type == LightType.BLOCK ? chunk.getSection(point.blockY()).blockLight() : chunk.getSection(point.blockY()).skyLight();
+
+            pool.submit(() -> {
+                var toAdd = light.calculateExternal(instance, chunk, point.blockY());
+                if (toAdd != null) sections.add(toAdd);
+                count.incrementAndGet();
+            });
+        }
+
+        while (count.get() < queue.size()) { }
+
+        Set<Point> newQueue = ConcurrentHashMap.newKeySet();
+        count.set(0);
+
+        for (Light light : sections) {
+            var toAdd = light.flip();
+            if (toAdd != null) newQueue.addAll(toAdd);
+        }
+
+        if (newQueue.size() > 0) {
+            flushQueue(instance, newQueue, type);
         }
     }
 
     public static void relight(Instance instance, Collection<Chunk> chunks) {
-        Set<Point> toPropagate = chunks
-                .parallelStream()
-                .flatMap(chunk -> IntStream
-                        .range(chunk.getMinSection(), chunk.getMaxSection())
-                        .mapToObj(index -> Map.entry(index, chunk)))
-                .map(chunkIndex -> {
-                    final Chunk chunk = chunkIndex.getValue();
-                    final int section = chunkIndex.getKey();
+        Set<Point> sections = new HashSet<>();
 
-                    chunk.getSection(section).blockLight().invalidate();
-                    chunk.getSection(section).skyLight().invalidate();
+        for (Chunk chunk : chunks) {
+            if (chunk == null) continue;
+            for (int section = chunk.minSection; section < chunk.maxSection; section++) {
+                chunk.getSection(section).blockLight().invalidate();
+                chunk.getSection(section).skyLight().invalidate();
 
-                    return new Vec(chunk.getChunkX(), section, chunk.getChunkZ());
-                }).collect(Collectors.toSet());
+                sections.add(new Vec(chunk.getChunkX(), section, chunk.getChunkZ()));
+            }
+        }
 
         synchronized (instance) {
-            relight(instance, toPropagate, LightType.BLOCK);
-            relight(instance, toPropagate, LightType.SKY);
+            relight(instance, sections, LightType.BLOCK);
+            relight(instance, sections, LightType.SKY);
         }
     }
 
@@ -405,32 +400,30 @@ public class LightingChunk extends DynamicChunk {
     }
 
     private static void relight(Instance instance, Set<Point> sections, LightType type) {
-        Set<Point> toPropagate = sections
-                .parallelStream()
-                // .stream()
-                .map(chunkIndex -> {
-                    final Chunk chunk = instance.getChunk(chunkIndex.blockX(), chunkIndex.blockZ());
-                    final int section = chunkIndex.blockY();
-                    if (chunk == null) return null;
-                    if (type == LightType.BLOCK) return chunk.getSection(section).blockLight().calculateInternal(chunk.getInstance(), chunk.getChunkX(), section, chunk.getChunkZ());
-                    else return chunk.getSection(section).skyLight().calculateInternal(chunk.getInstance(), chunk.getChunkX(), section, chunk.getChunkZ());
-                }).filter(Objects::nonNull)
-                .flatMap(lightSet -> lightSet.flip().stream())
-                .collect(Collectors.toSet())
-                // .stream()
-                .parallelStream()
-                .flatMap(sectionLocation -> {
-                    final Chunk chunk = instance.getChunk(sectionLocation.blockX(), sectionLocation.blockZ());
-                    final int section = sectionLocation.blockY();
-                    if (chunk == null) return Stream.empty();
+        Set<Point> points = ConcurrentHashMap.newKeySet();
+        AtomicInteger count = new AtomicInteger(0);
 
-                    final Light light = type == LightType.BLOCK ? chunk.getSection(section).blockLight() : chunk.getSection(section).skyLight();
-                    light.calculateExternal(chunk.getInstance(), chunk, section);
+        System.out.println("Relighting " + sections.size() + " sections");
+        long time = System.currentTimeMillis();
 
-                    return light.flip().stream();
-                }).collect(Collectors.toSet());
+        for (var chunkIndex : sections) {
+            final Chunk chunk = instance.getChunk(chunkIndex.blockX(), chunkIndex.blockZ());
+            final int section = chunkIndex.blockY();
+            if (chunk == null) return;
+            var light = type == LightType.BLOCK ? chunk.getSection(section).blockLight() : chunk.getSection(section).skyLight();
 
-        flushQueue(instance, toPropagate, type);
+            pool.submit(() -> {
+                var l = light.calculateInternal(chunk.getInstance(), chunk.getChunkX(), section, chunk.getChunkZ());
+                points.addAll(l.flip());
+                count.incrementAndGet();
+            });
+        }
+
+        while (count.get() < sections.size()) { }
+
+        System.out.println("Relighting took " + (System.currentTimeMillis() - time) + "ms");
+
+        flushQueue(instance, points, type);
     }
 
     @Override
