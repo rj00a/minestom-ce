@@ -33,7 +33,7 @@ public final class LightCompute {
         byte[][] borders = new byte[FACES.length][SIDE_LENGTH];
         byte[] lightArray = new byte[LIGHT_LENGTH];
 
-        var lightSources = new ArrayDeque<Integer>();
+        var lightSources = new ArrayDeque<Short>();
 
         while (!lightPre.isEmpty()) {
             int index = lightPre.dequeueShort();
@@ -48,7 +48,7 @@ public final class LightCompute {
 
             if (oldLightLevel < newLightLevel) {
                 placeLight(lightArray, newIndex, newLightLevel);
-                lightSources.add(index);
+                lightSources.add((short) index);
             }
         }
 
@@ -85,7 +85,7 @@ public final class LightCompute {
                     boolean airAir = currentBlock.isAir() && propagatedBlock.isAir();
                     if (!airAir && currentBlock.registry().collisionShape().isOccluded(propagatedBlock.registry().collisionShape(), face)) continue;
                     placeLight(lightArray, newIndex, newLightLevel);
-                    lightSources.add(newIndex | (newLightLevel << 12));
+                    lightSources.add((short) (newIndex | (newLightLevel << 12)));
                 }
             }
         }
