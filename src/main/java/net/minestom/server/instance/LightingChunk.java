@@ -293,8 +293,7 @@ public class LightingChunk extends DynamicChunk {
     private static void flushQueue(Instance instance, Set<Point> queue, LightType type, QueueType queueType) {
         AtomicInteger count = new AtomicInteger(0);
         Set<Light> sections = ConcurrentHashMap.newKeySet();
-        List<Map<Light, Point>> groups = new ArrayList<>();
-        Map<Light, Point> currentGroup = new HashMap<>();
+        Set<Point> newQueue = ConcurrentHashMap.newKeySet();
 
         for (Point point : queue) {
             Chunk chunk = instance.getChunk(point.blockX(), point.blockZ());
@@ -304,50 +303,23 @@ public class LightingChunk extends DynamicChunk {
             }
 
             var light = type == LightType.BLOCK ? chunk.getSection(point.blockY()).blockLight() : chunk.getSection(point.blockY()).skyLight();
-            currentGroup.put(light, point);
 
-            if (currentGroup.size() == 100) {
-                groups.add(currentGroup);
-                currentGroup = new HashMap<>();
-            }
-        }
-
-        if (currentGroup.size() != 0) {
-            groups.add(currentGroup);
-        }
-
-        for (var group : groups) {
             pool.submit(() -> {
-                for (var entry : group.entrySet()) {
-                    var light = entry.getKey();
-                    var point = entry.getValue();
+                if (queueType == QueueType.INTERNAL) light.calculateInternal(instance, chunk.getChunkX(), point.blockY(), chunk.getChunkZ());
+                else light.calculateExternal(instance, chunk, point.blockY());
 
-                    Chunk chunk = instance.getChunk(point.blockX(), point.blockZ());
-                    if (chunk == null) {
-                        count.incrementAndGet();
-                        continue;
-                    }
+                sections.add(light);
 
-                    if (queueType == QueueType.INTERNAL) light.calculateInternal(instance, chunk.getChunkX(), point.blockY(), chunk.getChunkZ());
-                    else light.calculateExternal(instance, chunk, point.blockY());
+                var toAdd = light.flip();
+                if (toAdd != null) newQueue.addAll(toAdd);
 
-                    sections.add(light);
-                    count.incrementAndGet();
-
-                }
+                count.incrementAndGet();
             });
         }
 
         while (count.get() < queue.size()) { }
 
-        Set<Point> newQueue = ConcurrentHashMap.newKeySet();
-
-        for (Light light : sections) {
-            var toAdd = light.flip();
-            if (toAdd != null) newQueue.addAll(toAdd);
-        }
-
-        if (newQueue.size() > 0) {
+        if (newQueue.size() > 0 && queueType == QueueType.EXTERNAL) {
             flushQueue(instance, newQueue, type, QueueType.EXTERNAL);
         }
     }
@@ -434,9 +406,9 @@ public class LightingChunk extends DynamicChunk {
         }
     }
 
-    private static void relight(Instance instance, Set<Point> points, LightType type) {
-        flushQueue(instance, points, type, QueueType.INTERNAL);
-        flushQueue(instance, points, type, QueueType.EXTERNAL);
+    private static void relight(Instance instance, Set<Point> sections, LightType type) {
+        flushQueue(instance, sections, type, QueueType.INTERNAL);
+        flushQueue(instance, sections, type, QueueType.EXTERNAL);
     }
 
     @Override
