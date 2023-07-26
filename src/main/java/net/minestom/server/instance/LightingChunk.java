@@ -86,12 +86,22 @@ public class LightingChunk extends DynamicChunk {
     }
 
     private void invalidateSection(int coordinate) {
-        var section = getSection(coordinate);
-        section.blockLight().invalidate();
-        section.skyLight().invalidate();
+        for (int i = -1; i <= 1; i++) {
+            for (int j = -1; j <= 1; j++) {
+                Chunk neighborChunk = instance.getChunk(chunkX + i, chunkZ + j);
+                if (neighborChunk == null) continue;
 
-        lightCache.invalidate();
-        chunkCache.invalidate();
+                if (neighborChunk instanceof LightingChunk light) {
+                    light.lightCache.invalidate();
+                    light.chunkCache.invalidate();
+                }
+        for (int k = -1; k <= 1; k++) {
+            if (k + coordinate < neighborChunk.getMinSection() || k + coordinate >= neighborChunk.getMaxSection()) continue;
+            neighborChunk.getSection(k + coordinate).blockLight().invalidate();
+            neighborChunk.getSection(k + coordinate).skyLight().invalidate();
+        }
+    }
+}
     }
 
     @Override
