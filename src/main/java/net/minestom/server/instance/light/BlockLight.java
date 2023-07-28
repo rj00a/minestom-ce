@@ -71,7 +71,7 @@ final class BlockLight implements Light {
         return Block.fromStateId((short)palette.get(x, y, z));
     }
 
-    private static ShortArrayFIFOQueue buildExternalQueue(Instance instance, Palette blockPalette, Map<BlockFace, Point> neighbors, byte[][] borders) {
+    private static ShortArrayFIFOQueue buildExternalQueue(Instance instance, Palette blockPalette, Map<BlockFace, Point> neighbors, byte[] content) {
         ShortArrayFIFOQueue lightSources = new ShortArrayFIFOQueue();
 
         for (BlockFace face : BlockFace.values()) {
@@ -89,8 +89,8 @@ final class BlockLight implements Light {
                     final int borderIndex = bx * SECTION_SIZE + by;
                     byte lightEmission = neighborFace[borderIndex];
 
-                    if (borders != null && borders[face.ordinal()] != null) {
-                        final int internalEmission = borders[face.ordinal()][borderIndex];
+                    if (content != null) {
+                        final int internalEmission = computeBorders(content, face)[borderIndex];
                         if (lightEmission <= internalEmission) continue;
                     }
 
@@ -189,6 +189,29 @@ final class BlockLight implements Light {
         return this;
     }
 
+    private static byte[] computeBorders(byte[] content, BlockFace face) {
+        byte[] border = new byte[SECTION_SIZE * SECTION_SIZE];
+
+        final int k = switch (face) {
+            case WEST, BOTTOM, NORTH -> 0;
+            case EAST, TOP, SOUTH -> 15;
+        };
+
+        for (int bx = 0; bx < SECTION_SIZE; ++bx) {
+            for (int by = 0; by < SECTION_SIZE; ++by) {
+                final int posTo = switch (face) {
+                    case NORTH, SOUTH -> bx | (k << 4) | (by << 8);
+                    case WEST, EAST -> k | (by << 4) | (bx << 8);
+                    default -> bx | (by << 4) | (k << 8);
+                };
+
+                border[bx * SECTION_SIZE + by] = (byte) (Math.max(getLight(content, posTo) - 1, 0));
+            }
+        }
+
+        return border;
+    }
+
     @Override
     public void invalidate() {
         invalidatePropagation();
@@ -244,7 +267,7 @@ final class BlockLight implements Light {
 
         Map<BlockFace, Point> neighbors = Light.getNeighbors(chunk, sectionY);
 
-        ShortArrayFIFOQueue queue = buildExternalQueue(instance, blockPalette, neighbors, borders);
+        ShortArrayFIFOQueue queue = buildExternalQueue(instance, blockPalette, neighbors, content);
         LightCompute.Result result = LightCompute.compute(blockPalette, queue);
 
         byte[] contentPropagationTemp = result.light();
