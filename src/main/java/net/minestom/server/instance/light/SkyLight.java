@@ -26,9 +26,6 @@ final class SkyLight implements Light {
     private byte[] contentPropagation;
     private byte[] contentPropagationSwap;
 
-    private byte[][] borders;
-    private byte[][] bordersPropagation;
-    private byte[][] bordersPropagationSwap;
     private boolean isValidBorders = true;
     private boolean needsSend = true;
 
@@ -51,13 +48,9 @@ final class SkyLight implements Light {
 
     @Override
     public Set<Point> flip() {
-        if (this.bordersPropagationSwap != null)
-            this.bordersPropagation = this.bordersPropagationSwap;
-
         if (this.contentPropagationSwap != null)
             this.contentPropagation = this.contentPropagationSwap;
 
-        this.bordersPropagationSwap = null;
         this.contentPropagationSwap = null;
 
         if (toUpdateSet == null) return Set.of();
@@ -92,7 +85,7 @@ final class SkyLight implements Light {
         return Block.fromStateId((short)palette.get(x, y, z));
     }
 
-    private static ShortArrayFIFOQueue buildExternalQueue(Instance instance, Palette blockPalette, Map<BlockFace, Point> neighbors, byte[][] borders) {
+    private static ShortArrayFIFOQueue buildExternalQueue(Instance instance, Palette blockPalette, Map<BlockFace, Point> neighbors, byte[] content) {
         ShortArrayFIFOQueue lightSources = new ShortArrayFIFOQueue();
 
         for (BlockFace face : BlockFace.values()) {
@@ -110,15 +103,11 @@ final class SkyLight implements Light {
                     final int borderIndex = bx * SECTION_SIZE + by;
                     byte lightEmission = neighborFace[borderIndex];
 
-                    if (borders != null && borders[face.ordinal()] != null) {
-                        final int internalEmission = borders[face.ordinal()][borderIndex];
+                    if (content != null) {
+                        final int internalEmission = computeBorders(content, face)[borderIndex];
                         if (lightEmission <= internalEmission) continue;
                     }
 
-                    if (borders != null && borders[face.ordinal()] != null) {
-                        final int internalEmission = borders[face.ordinal()][borderIndex];
-                        if (lightEmission <= internalEmission) continue;
-                    }
                     final int k = switch (face) {
                         case WEST, BOTTOM, NORTH -> 0;
                         case EAST, TOP, SOUTH -> 15;
@@ -193,11 +182,9 @@ final class SkyLight implements Light {
         if (queueSize == SECTION_SIZE * SECTION_SIZE * SECTION_SIZE) {
             this.fullyLit = true;
             this.content = contentFullyLit;
-            this.borders = bordersFullyLit;
         } else {
             Result result = LightCompute.compute(blockPalette, queue);
             this.content = result.light();
-            this.borders = result.borders();
         }
 
         Set<Point> toUpdate = new HashSet<>();
@@ -249,7 +236,6 @@ final class SkyLight implements Light {
 
     private void clearCache() {
         this.contentPropagation = null;
-        this.bordersPropagation = null;
         isValidBorders = true;
         needsSend = true;
         fullyLit = false;
@@ -286,16 +272,14 @@ final class SkyLight implements Light {
 
         byte[][] borderTemp = bordersFullyLit;
         if (!fullyLit) {
-            queue = buildExternalQueue(instance, blockPalette, neighbors, borders);
+            queue = buildExternalQueue(instance, blockPalette, neighbors, content);
             LightCompute.Result result = LightCompute.compute(blockPalette, queue);
 
             byte[] contentPropagationTemp = result.light();
             borderTemp = result.borders();
             this.contentPropagationSwap = bake(contentPropagationSwap, contentPropagationTemp);
-            this.bordersPropagationSwap = combineBorders(bordersPropagation, borderTemp);
         } else {
             this.contentPropagationSwap = null;
-            this.bordersPropagationSwap = null;
         }
 
         // Propagate changes to neighbors and self
@@ -351,22 +335,44 @@ final class SkyLight implements Light {
         return lightMax;
     }
 
+    private static byte[] computeBorders(byte[] content, BlockFace face) {
+        byte[] border = new byte[SECTION_SIZE * SECTION_SIZE];
+
+        final int k = switch (face) {
+            case WEST, BOTTOM, NORTH -> 0;
+            case EAST, TOP, SOUTH -> 15;
+        };
+
+        for (int bx = 0; bx < SECTION_SIZE; ++bx) {
+            for (int by = 0; by < SECTION_SIZE; ++by) {
+                final int posTo = switch (face) {
+                    case NORTH, SOUTH -> bx | (k << 4) | (by << 8);
+                    case WEST, EAST -> k | (by << 4) | (bx << 8);
+                    default -> bx | (by << 4) | (k << 8);
+                };
+
+                border[bx * SECTION_SIZE + by] = (byte) (Math.max(getLight(content, posTo) - 1, 0));
+            }
+        }
+
+        return border;
+    }
+
     @Override
     public byte[] getBorderPropagation(BlockFace face) {
         if (!isValidBorders) clearCache();
 
-        if (borders == null && bordersPropagation == null) return new byte[SIDE_LENGTH];
-        if (borders == null) return bordersPropagation[face.ordinal()];
-        if (bordersPropagation == null) return borders[face.ordinal()];
+        if (content == null && contentPropagation == null) return new byte[SIDE_LENGTH];
+        if (content == null) return computeBorders(contentPropagation, face);
+        if (contentPropagation == null) return computeBorders(content, face);
 
-        return combineBorders(bordersPropagation[face.ordinal()], borders[face.ordinal()]);
+        return combineBorders(computeBorders(contentPropagation, face), computeBorders(content, face));
     }
 
     @Override
     public void invalidatePropagation() {
         this.isValidBorders = false;
         this.needsSend = false;
-        this.bordersPropagation = null;
         this.contentPropagation = null;
     }
 
