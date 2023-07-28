@@ -25,9 +25,6 @@ final class BlockLight implements Light {
     private byte[] contentPropagation;
     private byte[] contentPropagationSwap;
 
-    private byte[][] borders;
-    private byte[][] bordersPropagation;
-    private byte[][] bordersPropagationSwap;
     private boolean isValidBorders = true;
     private boolean needsSend = true;
     private Set<Point> toUpdateSet = new HashSet<>();
@@ -38,13 +35,9 @@ final class BlockLight implements Light {
 
     @Override
     public Set<Point> flip() {
-        if (this.bordersPropagationSwap != null)
-            this.bordersPropagation = this.bordersPropagationSwap;
-
         if (this.contentPropagationSwap != null)
             this.contentPropagation = this.contentPropagationSwap;
 
-        this.bordersPropagationSwap = null;
         this.contentPropagationSwap = null;
 
         if (toUpdateSet == null) return Set.of();
@@ -164,7 +157,6 @@ final class BlockLight implements Light {
 
         Result result = LightCompute.compute(blockPalette, queue);
         this.content = result.light();
-        this.borders = result.borders();
 
         // Propagate changes to neighbors and self
         for (int i = -1; i <= 1; i++) {
@@ -236,7 +228,6 @@ final class BlockLight implements Light {
 
     private void clearCache() {
         this.contentPropagation = null;
-        this.bordersPropagation = null;
         isValidBorders = true;
         needsSend = true;
     }
@@ -274,7 +265,6 @@ final class BlockLight implements Light {
         byte[][] borderTemp = result.borders();
 
         this.contentPropagationSwap = bake(contentPropagationSwap, contentPropagationTemp);
-        this.bordersPropagationSwap = combineBorders(bordersPropagation, borderTemp);
 
         Set<Point> toUpdate = new HashSet<>();
 
@@ -335,18 +325,17 @@ final class BlockLight implements Light {
     public byte[] getBorderPropagation(BlockFace face) {
         if (!isValidBorders) clearCache();
 
-        if (borders == null && bordersPropagation == null) return new byte[SIDE_LENGTH];
-        if (borders == null) return bordersPropagation[face.ordinal()];
-        if (bordersPropagation == null) return borders[face.ordinal()];
+        if (content == null && contentPropagation == null) return new byte[SIDE_LENGTH];
+        if (content == null) return computeBorders(contentPropagation, face);
+        if (contentPropagation == null) return computeBorders(content, face);
 
-        return combineBorders(bordersPropagation[face.ordinal()], borders[face.ordinal()]);
+        return combineBorders(computeBorders(contentPropagation, face), computeBorders(content, face));
     }
 
     @Override
     public void invalidatePropagation() {
         this.isValidBorders = false;
         this.needsSend = false;
-        this.bordersPropagation = null;
         this.contentPropagation = null;
     }
 
