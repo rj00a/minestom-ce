@@ -27,10 +27,9 @@ public final class LightCompute {
 
     static @NotNull Result compute(Palette blockPalette, ShortArrayFIFOQueue lightPre) {
         if (lightPre.isEmpty()) {
-            return new Result(emptyContent, emptyBorders);
+            return new Result(emptyContent);
         }
 
-        byte[][] borders = new byte[FACES.length][SIDE_LENGTH];
         byte[] lightArray = new byte[LIGHT_LENGTH];
 
         var lightSources = new ArrayDeque<Short>();
@@ -65,17 +64,12 @@ public final class LightCompute {
                 final int yO = y + dir.normalY();
                 final int zO = z + dir.normalZ();
                 final byte newLightLevel = (byte) (lightLevel - 1);
+
                 // Handler border
                 if (xO < 0 || xO >= SECTION_SIZE || yO < 0 || yO >= SECTION_SIZE || zO < 0 || zO >= SECTION_SIZE) {
-                    final byte[] border = borders[face.ordinal()];
-                    final int borderIndex = switch (face) {
-                        case WEST, EAST -> y * SECTION_SIZE + z;
-                        case BOTTOM, TOP -> x * SECTION_SIZE + z;
-                        case NORTH, SOUTH -> x * SECTION_SIZE + y;
-                    };
-                    border[borderIndex] = newLightLevel;
                     continue;
                 }
+
                 // Section
                 final int newIndex = xO | (zO << 4) | (yO << 8);
                 if (getLight(lightArray, newIndex) + 2 <= lightLevel) {
@@ -89,10 +83,10 @@ public final class LightCompute {
                 }
             }
         }
-        return new Result(lightArray, borders);
+        return new Result(lightArray);
     }
 
-    record Result(byte[] light, byte[][] borders) {
+    record Result(byte[] light) {
         Result {
             assert light.length == LIGHT_LENGTH : "Only 16x16x16 sections are supported: " + light.length;
         }

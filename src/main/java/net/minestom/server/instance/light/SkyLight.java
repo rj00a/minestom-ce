@@ -32,14 +32,10 @@ final class SkyLight implements Light {
     private Set<Point> toUpdateSet = new HashSet<>();
 
     private boolean fullyLit = false;
-    private static final byte[][] bordersFullyLit = new byte[6][SIDE_LENGTH];
     private static final byte[] contentFullyLit = new byte[LIGHT_LENGTH];
 
     static {
         Arrays.fill(contentFullyLit, (byte) -1);
-        for (byte[] border : bordersFullyLit) {
-            Arrays.fill(border, (byte) 14);
-        }
     }
 
     SkyLight(Palette blockPalette) {
@@ -270,13 +266,13 @@ final class SkyLight implements Light {
 
         ShortArrayFIFOQueue queue;
 
-        byte[][] borderTemp = bordersFullyLit;
+        byte[] contentPropagationTemp = contentFullyLit;
+
         if (!fullyLit) {
             queue = buildExternalQueue(instance, blockPalette, neighbors, content);
             LightCompute.Result result = LightCompute.compute(blockPalette, queue);
 
-            byte[] contentPropagationTemp = result.light();
-            borderTemp = result.borders();
+            contentPropagationTemp = result.light();
             this.contentPropagationSwap = bake(contentPropagationSwap, contentPropagationTemp);
         } else {
             this.contentPropagationSwap = null;
@@ -287,7 +283,7 @@ final class SkyLight implements Light {
             var neighbor = entry.getValue();
             var face = entry.getKey();
 
-            byte[] next = borderTemp[face.ordinal()];
+            byte[] next = computeBorders(contentPropagationTemp, face);
             byte[] current = getBorderPropagation(face);
 
             if (!compareBorders(next, current)) {
@@ -297,17 +293,6 @@ final class SkyLight implements Light {
 
         this.toUpdateSet = toUpdate;
         return this;
-    }
-
-    private byte[][] combineBorders(byte[][] b1, byte[][] b2) {
-        if (b1 == null) return b2;
-
-        byte[][] newBorder = new byte[FACES.length][];
-        Arrays.setAll(newBorder, i -> new byte[SIDE_LENGTH]);
-        for (int i = 0; i < FACES.length; i++) {
-            newBorder[i] = combineBorders(b1[i], b2[i]);
-        }
-        return newBorder;
     }
 
     private byte[] bake(byte[] content1, byte[] content2) {
