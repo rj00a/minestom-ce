@@ -263,7 +263,6 @@ final class BlockLight implements Light {
         LightCompute.Result result = LightCompute.compute(blockPalette, queue);
 
         byte[] contentPropagationTemp = result.light();
-        byte[][] borderTemp = result.borders();
 
         this.contentPropagationSwap = bake(contentPropagationSwap, contentPropagationTemp);
 
@@ -274,7 +273,7 @@ final class BlockLight implements Light {
             var neighbor = entry.getValue();
             var face = entry.getKey();
 
-            byte[] next = borderTemp[face.ordinal()];
+            byte[] next = computeBorders(contentPropagationTemp, face);
             byte[] current = getBorderPropagation(face);
 
             if (!compareBorders(next, current)) {
